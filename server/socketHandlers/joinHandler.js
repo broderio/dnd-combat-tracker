@@ -38,6 +38,9 @@ export class JoinHandler {
 
     this.socket.emit(EVENTS.JOINED, { mode: this.session.mode, name: this.session.name });
     this.socket.emit(EVENTS.STATE, this.gameState.getState());
+    if (this.session.mode === "dm") {
+      this.socket.emit(EVENTS.ALL_MONSTER_INSTANCES, this.gameState.getMonsterInstancesJSON());
+    }
 
     this.roster.broadcastOnlinePlayers(this.io);
     this.roster.pushAllCharactersToDMs(this.io); // refresh every connected DM's

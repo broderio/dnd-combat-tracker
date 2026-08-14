@@ -21,6 +21,7 @@ import { clientState } from "./state.js";
 import { positionToken, refreshTokenVisual, render as renderBoard } from "./views/boardView.js";
 import { renderDMRoster, renderOwnCharacterView } from "./views/characterSheetView.js";
 import { renderOwnerDropdown, syncGridFormFromState } from "./views/dmPanelView.js";
+import { renderMonsterSidebar } from "./views/monsterSheetView.js";
 import { renderOverlayList } from "./views/overlayPanelView.js";
 import { renderInitiativeList, renderTurnBanner } from "./views/turnTrackerView.js";
 
@@ -32,7 +33,7 @@ const gameScreen = document.getElementById("game-screen");
 const roleBadge = document.getElementById("role-badge");
 const presenceLog = document.getElementById("presence-log");
 const dmPanel = document.getElementById("dm-panel");
-const boardHint = document.getElementById("board-hint");
+const monstersSidebar = document.getElementById("monsters-sidebar");
 const charSidebarTitle = document.getElementById("char-sidebar-title");
 const ownCharacterView = document.getElementById("own-character-view");
 const allCharactersView = document.getElementById("all-characters-view");
@@ -50,13 +51,13 @@ socketClient.onEvent(EVENTS.JOINED, ({ mode, name }) => {
 
   if (mode === "dm") {
     dmPanel.classList.remove("hidden");
-    boardHint.classList.add("hidden");
+    monstersSidebar.classList.remove("hidden");
     charSidebarTitle.textContent = "All Characters";
     ownCharacterView.classList.add("hidden");
     allCharactersView.classList.remove("hidden");
   } else {
     dmPanel.classList.add("hidden");
-    boardHint.classList.remove("hidden");
+    monstersSidebar.classList.add("hidden");
     charSidebarTitle.textContent = "Character Sheet";
     ownCharacterView.classList.remove("hidden");
     allCharactersView.classList.add("hidden");
@@ -76,6 +77,11 @@ socketClient.onEvent(EVENTS.YOUR_CHARACTER, (character) => {
 socketClient.onEvent(EVENTS.ALL_CHARACTERS, (roster) => {
   clientState.setDmRoster(roster);
   renderDMRoster();
+});
+
+socketClient.onEvent(EVENTS.ALL_MONSTER_INSTANCES, (instances) => {
+  clientState.setDmMonsterInstances(instances);
+  renderMonsterSidebar();
 });
 
 socketClient.onEvent(EVENTS.PLAYERS_ONLINE, (list) => {

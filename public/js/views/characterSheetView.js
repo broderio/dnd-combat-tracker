@@ -1,11 +1,17 @@
 // public/js/views/characterSheetView.js
 //
 // Right-hand sidebar: for a player, their own character sheet; for the DM,
-// every online player's full sheet. Both share the same card layout
-// (buildCharacterCard), just with the edit button toggled on/off.
+// every online player's full sheet plus inline combat-time quick-edit
+// controls (current HP +/-, status effect toggles). This is deliberately a
+// lighter-weight editing surface than the full "Edit Character Sheet" modal
+// (class/level/abilities/etc.) — see ARCHITECTURE.md's "Single source of
+// truth" section. Both share the same card layout (buildCharacterCard), just
+// with the edit button and quick-edit controls toggled on/off.
 
 import { ABILITY_KEYS } from "/shared/schema.js";
+import { buildQuickEditControls as sharedBuildQuickEditControls } from "./quickEditControls.js";
 
+import { ApiClient } from "../api.js";
 import { clientState } from "../state.js";
 
 import { openCharacterModal } from "./characterModalView.js";
@@ -26,7 +32,7 @@ function hpBarClass(current, max) {
   return "";
 }
 
-function buildCharacterCard(character, { showEditButton }) {
+function buildCharacterCard(character, { showEditButton, showQuickEdit, username }) {
   const card = document.createElement("div");
   card.className = "char-sheet-card";
 
@@ -79,7 +85,35 @@ function buildCharacterCard(character, { showEditButton }) {
     card.appendChild(editBtn);
   }
 
+  if (showQuickEdit) {
+    card.appendChild(buildQuickEditControls(username, character));
+  }
+
   return card;
+}
+
+/**
+ * DM combat-time quick-edit: current HP +/- and status effect toggles,
+ * saved via the existing character PUT (same partial-update path a player's
+ * own sheet edit uses) — this is the single choke point that then triggers
+ * the redacted board rebroadcast (see server/routes/characters.js), so any
+ * token linked to this character updates its bloodied glow/status icons for
+ * everyone automatically. Deliberately does not expose class/level/
+ * abilities/etc. — that's the full sheet modal's job, not this one's.
+ */
+function buildQuickEditControls(username, character) {
+  return sharedBuildQuickEditControls(character.hp, character.statusEffects, {
+    onAdjustHp: (delta) => {
+      const next = Math.max(-9999, Math.min(9999, character.hp.current + delta));
+      ApiClient.updateCharacter(username, character.id, { hp: { current: next } });
+    },
+    onToggleEffect: (effect, checked) => {
+      const current = new Set(character.statusEffects || []);
+      if (checked) current.add(effect);
+      else current.delete(effect);
+      ApiClient.updateCharacter(username, character.id, { statusEffects: Array.from(current) });
+    },
+  });
 }
 
 export function renderOwnCharacterView() {
@@ -103,6 +137,8 @@ export function renderDMRoster() {
     label.style.marginBottom = "4px";
     label.textContent = `Played by ${username}`;
     allCharactersView.appendChild(label);
-    allCharactersView.appendChild(buildCharacterCard(character, { showEditButton: false }));
+    allCharactersView.appendChild(
+      buildCharacterCard(character, { showEditButton: false, showQuickEdit: true, username })
+    );
   });
 }

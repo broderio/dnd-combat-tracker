@@ -388,6 +388,25 @@ body {
   margin: 0 0 14px;
 }
 
+#monsters-sidebar {
+  width: auto;
+  flex-shrink: 0;
+  background: var(--wood-light);
+  border-left: 1px solid var(--line);
+  padding: 18px;
+  overflow-y: auto;
+  min-height: 0;
+}
+#monsters-sidebar h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--parchment-dim);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 6px;
+  margin: 0 0 14px;
+}
+
 .char-sheet-card {
   background: var(--wood);
   border: 1px solid var(--line);
@@ -581,6 +600,37 @@ body {
 }
 #dm-panel h2:first-of-type {
   margin-top: 0;
+}
+
+.dm-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 14px;
+}
+.dm-tab-btn {
+  flex: 1 1 auto;
+  padding: 6px 8px;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--wood);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  color: var(--parchment-dim);
+  cursor: pointer;
+  font-family: inherit;
+}
+.dm-tab-btn.active {
+  background: var(--ember);
+  color: #fff;
+  border-color: var(--ember);
+}
+.dm-tab-panel {
+  display: none;
+}
+.dm-tab-panel.active {
+  display: block;
 }
 
 .grid-controls label,
@@ -895,6 +945,45 @@ body {
   padding-top: 10px;
   border-top: 1px solid var(--line);
   font-size: 0.82rem;
+}
+.token-overlay-tag {
+  font-size: 0.75rem;
+  color: var(--ember-bright);
+  margin-top: 2px;
+}
+
+/* DM sidebar quick-edit (current HP +/-, status toggles) — replaces the old
+   per-token HP/status editor now that tokens are a read-only projection of
+   their linked character. */
+.char-sheet-quick-edit {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.monster-attacks-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 0.8rem;
+  color: var(--parchment-dim);
+}
+.quick-edit-hp {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+}
+.quick-edit-hp button {
+  padding: 2px 8px;
+}
+.quick-edit-max-hp {
+  width: 50px;
+  padding: 2px 4px;
+  background: var(--wood);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--parchment);
+  font-family: inherit;
 }
 
 /* ---------- Turn order + overlay panels (DM panel) ---------- */

@@ -20,7 +20,18 @@ export class ClientState {
     this.session = { mode: null, name: null };
 
     /** The shared board (background image, grid config, tokens, overlays, turn order) mirrored from the server's `state` event. */
-    this.board = { background: null, grid: Grid.default(), tokens: {}, overlays: {}, turnOrder: TurnOrder.default() };
+    this.board = {
+      background: null,
+      grid: Grid.default(),
+      tokens: {},
+      overlays: {},
+      turnOrder: TurnOrder.default(),
+      // combatantStatuses[combatantId] = { combatantId, condition, statusEffects }
+      // — the redacted, no-numbers view every client (not just the owner/DM)
+      // receives for each linked token, used to render bloodied glow/status
+      // icons. See ARCHITECTURE.md's "Single source of truth" section.
+      combatantStatuses: {},
+    };
 
     /**
      * What the DM's pointer currently does when it interacts with the board,
@@ -38,6 +49,7 @@ export class ClientState {
     this.activeCharacter = null; // the character this player picked for this session
     this.onlinePlayers = []; // [{username, characterName}] — public, no stats
     this.dmRoster = []; // [{username, character}] — full stats, DM only
+    this.dmMonsterInstances = {}; // {id: MonsterInstance.toJSON()} — full stats, DM only
   }
 
   setBoardTool(tool) {
@@ -58,6 +70,9 @@ export class ClientState {
   }
   setDmRoster(roster) {
     this.dmRoster = roster;
+  }
+  setDmMonsterInstances(instances) {
+    this.dmMonsterInstances = instances;
   }
 
   setSession(mode, name) {

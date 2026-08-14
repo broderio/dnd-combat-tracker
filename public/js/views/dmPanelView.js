@@ -1,8 +1,9 @@
 // public/js/views/dmPanelView.js
 //
-// The DM-only sidebar: background upload, grid configuration, and token
-// management (add/remove, owner dropdown, "generate a token per online
-// player"). Hidden entirely for players (see gameShell.js).
+// The DM-only sidebar: background/grid, token management (bare/character/
+// monster tokens), saved encounters, turn order, and area overlays — split
+// into tabs (see #wireTabs below) so only one category is visible at a time.
+// Hidden entirely for players (see main.js).
 
 import { EVENTS } from "/shared/protocol.js";
 
@@ -11,6 +12,18 @@ import { socketClient } from "../socketClient.js";
 import { clientState } from "../state.js";
 
 import { buildTokenListItem } from "./tokenEditorView.js";
+
+function wireTabs() {
+  const tabButtons = document.querySelectorAll(".dm-tab-btn");
+  const tabPanels = document.querySelectorAll(".dm-tab-panel");
+  tabButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      tabButtons.forEach((b) => b.classList.toggle("active", b === btn));
+      tabPanels.forEach((p) => p.classList.toggle("active", p.id === `dm-tab-${btn.dataset.tab}`));
+    });
+  });
+}
+wireTabs();
 
 const uploadForm = document.getElementById("upload-form");
 const backgroundInput = document.getElementById("background-input");
@@ -23,8 +36,20 @@ const tokenName = document.getElementById("token-name");
 const tokenColor = document.getElementById("token-color");
 const tokenOwner = document.getElementById("token-owner");
 const addTokenBtn = document.getElementById("add-token-btn");
-const generatePlayerTokensBtn = document.getElementById("generate-player-tokens-btn");
+const characterTokenPicker = document.getElementById("character-token-picker");
+const addCharacterTokenBtn = document.getElementById("add-character-token-btn");
 const tokenList = document.getElementById("token-list");
+
+const monsterSearchName = document.getElementById("monster-search-name");
+const monsterSearchCrMin = document.getElementById("monster-search-cr-min");
+const monsterSearchCrMax = document.getElementById("monster-search-cr-max");
+const monsterSearchBtn = document.getElementById("monster-search-btn");
+const monsterSearchResults = document.getElementById("monster-search-results");
+const addMonsterTokenBtn = document.getElementById("add-monster-token-btn");
+
+const encounterName = document.getElementById("encounter-name");
+const saveEncounterBtn = document.getElementById("save-encounter-btn");
+const encounterList = document.getElementById("encounter-list");
 
 /**
  * Keeps the grid input fields in sync with the latest server state, without
@@ -96,23 +121,146 @@ addTokenBtn.addEventListener("click", () => {
   tokenOwner.value = "";
 });
 
-generatePlayerTokensBtn.addEventListener("click", () => {
-  // Generate a token for each online player who doesn't already have one. Use
-  // the tokenColor from their character in the roster.
-  clientState.onlinePlayers.forEach((p) => {
-    if (!p.characterName) return; // skip players without a character
-    const alreadyHasToken = Object.values(clientState.board.tokens).some((t) => t.owner === p.username);
-    if (alreadyHasToken) return;
+/**
+ * Fetches the full cross-user roster (GET /api/all-characters — already
+ * existed for the DM roster feature) and fills the character-token picker
+ * with one option per saved character, online or not. Called once on load;
+ * good enough for a pre-session prep workflow where the roster doesn't
+ * change while the picker is open.
+ */
+async function loadCharacterTokenPicker() {
+  const res = await ApiClient.getAllCharacters();
+  if (!res.ok) return;
+  characterTokenPicker.innerHTML = "";
+  res.roster.forEach(({ username, characters }) => {
+    characters.forEach((character) => {
+      const opt = document.createElement("option");
+      opt.value = JSON.stringify({ username, characterId: character.id });
+      opt.textContent = `${character.name} (${username})`;
+      characterTokenPicker.appendChild(opt);
+    });
+  });
+}
+loadCharacterTokenPicker();
 
-    const rosterEntry = clientState.dmRoster.find((r) => r.username === p.username);
-    const color = rosterEntry ? rosterEntry.character.tokenColor : "#e63946";
+addCharacterTokenBtn.addEventListener("click", () => {
+  const selections = Array.from(characterTokenPicker.selectedOptions).map((o) => JSON.parse(o.value));
+  selections.forEach(({ username, characterId }, i) => {
+    const rosterOption = Array.from(characterTokenPicker.options).find((o) => o.value.includes(characterId));
+    const label = rosterOption ? rosterOption.textContent.replace(` (${username})`, "") : "Character";
+    // Look up the character's tokenColor from the DM roster if it's cached
+    // (online player), else fall back to the schema default — the token's
+    // own color is just a display default; combat state always comes from
+    // the linked character record.
+    const rosterEntry = clientState.dmRoster.find((r) => r.username === username);
+    const color = rosterEntry && rosterEntry.character.id === characterId ? rosterEntry.character.tokenColor : "#e63946";
 
     socketClient.emitEvent(EVENTS.ADD_TOKEN, {
-      name: p.characterName,
+      name: label,
       color,
-      owner: p.username,
-      col: Math.floor(clientState.board.grid.cols / 2),
+      owner: username,
+      combatantId: characterId,
+      col: Math.floor(clientState.board.grid.cols / 2) + i,
       row: Math.floor(clientState.board.grid.rows / 2),
     });
   });
 });
+
+// ---------------- Monster Library (Phase 2) ----------------
+
+async function runMonsterSearch() {
+  const res = await ApiClient.searchMonsters({
+    name: monsterSearchName.value,
+    crMin: monsterSearchCrMin.value,
+    crMax: monsterSearchCrMax.value,
+  });
+  monsterSearchResults.innerHTML = "";
+  if (!res.ok) return;
+  res.monsters.forEach((m) => {
+    const opt = document.createElement("option");
+    opt.value = m.id;
+    const cr = m.cr === null ? "CR ?" : `CR ${m.cr}`;
+    const hp = m.hpMax === null ? "" : `, ${m.hpMax} hp`;
+    opt.textContent = `${m.name} (${cr}${hp})`;
+    monsterSearchResults.appendChild(opt);
+  });
+}
+monsterSearchBtn.addEventListener("click", runMonsterSearch);
+runMonsterSearch(); // populate with an unfiltered (top-50) list on load
+
+addMonsterTokenBtn.addEventListener("click", () => {
+  const selectedIds = Array.from(monsterSearchResults.selectedOptions).map((o) => o.value);
+  selectedIds.forEach((templateId, i) => {
+    socketClient.emitEvent(EVENTS.ADD_MONSTER_TOKEN, {
+      templateId,
+      color: "#6d597a",
+      col: Math.floor(clientState.board.grid.cols / 2) + i,
+      row: Math.floor(clientState.board.grid.rows / 2) + 1,
+    });
+  });
+});
+
+// ---------------- Saved Encounters (Phase 3) ----------------
+// A saved encounter is a full snapshot of the live board (background, grid,
+// tokens + positions, overlays, turn order, monster instances) — the server
+// captures/restores it (see server/routes/encounters.js); this view is just
+// a name field, a save button, and the list of saves with Load/Overwrite/
+// Delete.
+
+async function loadEncounterList() {
+  const res = await ApiClient.getEncounters();
+  if (!res.ok) return;
+  renderEncounterList(res.encounters);
+}
+
+function renderEncounterList(encounters) {
+  encounterList.innerHTML = "";
+  encounters.forEach((encounter) => {
+    const li = document.createElement("li");
+    li.className = "token-list-item";
+
+    const header = document.createElement("div");
+    header.textContent = encounter.name;
+
+    const loadBtn = document.createElement("button");
+    loadBtn.textContent = "Load";
+    loadBtn.className = "secondary-btn";
+    loadBtn.addEventListener("click", async () => {
+      const res = await ApiClient.loadEncounter(encounter.id);
+      if (!res.ok) alert(res.error || "Failed to load encounter.");
+    });
+
+    const overwriteBtn = document.createElement("button");
+    overwriteBtn.textContent = "Overwrite";
+    overwriteBtn.className = "secondary-btn";
+    overwriteBtn.addEventListener("click", async () => {
+      const res = await ApiClient.updateEncounter(encounter.id, { name: encounter.name, resnapshot: true });
+      if (res.ok) renderEncounterList(res.encounters);
+    });
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "Delete";
+    deleteBtn.addEventListener("click", async () => {
+      const res = await ApiClient.deleteEncounter(encounter.id);
+      if (res.ok) renderEncounterList(res.encounters);
+    });
+
+    li.append(header, loadBtn, overwriteBtn, deleteBtn);
+    encounterList.appendChild(li);
+  });
+}
+
+saveEncounterBtn.addEventListener("click", async () => {
+  const name = encounterName.value.trim() || "Unnamed Encounter";
+  const res = await ApiClient.createEncounter({ name });
+  if (!res.ok) {
+    alert(res.error || "Failed to save encounter.");
+    return;
+  }
+  encounterName.value = "";
+  renderEncounterList(res.encounters);
+});
+
+loadEncounterList();
+
+

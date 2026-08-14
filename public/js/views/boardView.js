@@ -178,9 +178,16 @@ export class BoardView {
     });
   }
 
-  /** True if `token` is at or below half its max HP. */
-  static #isBloodied(token) {
-    return !!token.hp && token.hp.max > 0 && token.hp.current / token.hp.max <= 0.5;
+  /**
+   * The redacted public status for this token's linked combatant (if any),
+   * as broadcast by the server in `combatantStatuses` — the only place this
+   * client learns whether a token is bloodied/afflicted. Never derived from
+   * a real HP number, since players other than the owner/DM never receive
+   * one for combatants they don't own (see ARCHITECTURE.md).
+   */
+  static #combatantStatus(token) {
+    if (!token.combatantId) return null;
+    return clientState.board.combatantStatuses?.[token.combatantId] || null;
   }
 
   #activeTurnTokenId() {
@@ -190,16 +197,17 @@ export class BoardView {
   }
 
   #applyTokenVisualState(el, token) {
-    const effects = [...(token.statusEffects || []), ...(token.overlayEffects || [])];
-    el.classList.toggle("bloodied", BoardView.#isBloodied(token));
+    const status = BoardView.#combatantStatus(token);
+    const effects = [...(status?.statusEffects || []), ...(token.overlayEffects || [])];
+    const bloodied = status ? status.condition === "bloodied" || status.condition === "critical" : false;
+    el.classList.toggle("bloodied", bloodied);
     el.classList.toggle("active-turn", token.id === this.#activeTurnTokenId());
     this.#renderTokenEffects(el, effects);
 
-    const hpText = token.hp && clientState.session.mode === "dm" ? ` — HP ${token.hp.current}/${token.hp.max}` : "";
     const effectNames = effects.map((effect) => (typeof effect === "string" ? effect : effect.name));
     const effectsText = effectNames.length ? ` [${effectNames.join(", ")}]` : "";
     el.title = token.owner ? `${token.name} (controlled by ${token.owner})` : `${token.name} (DM-controlled)`;
-    el.title += hpText + effectsText;
+    el.title += effectsText;
   }
 
   refreshTokenVisual(id) {

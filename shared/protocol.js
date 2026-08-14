@@ -33,9 +33,35 @@
  * @property {string[]} overlayEffects - recomputed for the moved token, since
  *   moving can enter/leave an AoE overlay
  *
- * @typedef {Object} UpdateTokenPayload - DM-only partial token edit
- * @property {string} id
- * @property {{current?: number, max?: number}} [hp]
+ * @typedef {Object} AddTokenPayload
+ * @property {string} name
+ * @property {string} color
+ * @property {string|null} owner
+ * @property {number} col
+ * @property {number} row
+ * @property {string|null} [combatantId] - links this token to a Character
+ *   (or, from Phase 2, monster instance); HP/status are never sent here —
+ *   they live only on the source record (see CombatantStatus below)
+ *
+ * @typedef {Object} CombatantStatus - the redacted, no-numbers public view
+ *   of a linked combatant, broadcast to everyone as part of `state`
+ * @property {string} combatantId
+ * @property {'healthy'|'bloodied'|'critical'} condition
+ * @property {string[]} statusEffects
+ *
+ * @typedef {Object} AddMonsterTokenPayload - places a monster from the
+ *   Phase 2 dnd-data library: server creates a fresh MonsterInstance (full
+ *   HP, no status effects) from the given template and a token linked to it
+ *   in one request, so a monster instance never exists without a token.
+ * @property {string} templateId - a MonsterTemplate id (see server/monsterLibrary.js), e.g. "mon_42"
+ * @property {string} color
+ * @property {number} col
+ * @property {number} row
+ *
+ * @typedef {Object} UpdateMonsterInstancePayload - DM-only quick-edit of a
+ *   placed monster instance's hp/statusEffects (its only mutable fields)
+ * @property {string} id - a MonsterInstance id, e.g. "moninst_3"
+ * @property {{current: number, max: number}} [hp]
  * @property {string[]} [statusEffects]
  *
  * @typedef {Object} AddOverlayPayload
@@ -57,7 +83,6 @@
  * @property {string} username
  * @property {import('./schema.js').Character} character
  */
-
 export const EVENTS = {
   // client -> server
   JOIN: "join",
@@ -65,7 +90,8 @@ export const EVENTS = {
   ADD_TOKEN: "add-token",
   REMOVE_TOKEN: "remove-token",
   MOVE_TOKEN: "move-token",
-  UPDATE_TOKEN: "update-token",
+  ADD_MONSTER_TOKEN: "add-monster-token",
+  UPDATE_MONSTER_INSTANCE: "update-monster-instance",
   ADD_OVERLAY: "add-overlay",
   REMOVE_OVERLAY: "remove-overlay",
   SET_TURN_ORDER: "set-turn-order",
@@ -79,4 +105,8 @@ export const EVENTS = {
   ALL_CHARACTERS: "all-characters",
   PLAYERS_ONLINE: "players-online",
   TOKEN_MOVED: "token-moved",
+  // Full (real hp/statusEffects) monster instance data — DM-only, mirrors
+  // ALL_CHARACTERS. The general `state` broadcast only carries the redacted
+  // combatantStatuses view (see MonsterInstance in shared/schema.js).
+  ALL_MONSTER_INSTANCES: "all-monster-instances",
 };

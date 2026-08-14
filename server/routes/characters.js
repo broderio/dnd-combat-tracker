@@ -7,11 +7,14 @@
 
 import { Router } from "express";
 
+import { EVENTS } from "../../shared/protocol.js";
+
 export class CharactersController {
-  constructor(io, database, roster) {
+  constructor(io, database, roster, gameStateStore) {
     this.io = io;
     this.db = database;
     this.roster = roster;
+    this.gameState = gameStateStore;
 
     this.router = Router();
     // TODO: If a player updates their character's color, we should update the
@@ -40,6 +43,7 @@ export class CharactersController {
     user.characters.push(character);
     this.db.saveDB(db);
     this.roster.notifyCharacterUpdated(this.io, user.username, character.id, character);
+    this.io.emit(EVENTS.STATE, this.gameState.getState());
     res.json({ ok: true, characters: user.characters, character });
   }
 
@@ -56,6 +60,10 @@ export class CharactersController {
     user.characters[idx] = updated;
     this.db.saveDB(db);
     this.roster.notifyCharacterUpdated(this.io, user.username, updated.id, updated);
+    // A DM's inline HP/status quick-edit (or the player's own sheet edit)
+    // may have changed what's safe to show on the board — re-broadcast the
+    // full board state so every client's combatantStatuses stays current.
+    this.io.emit(EVENTS.STATE, this.gameState.getState());
     res.json({ ok: true, characters: user.characters, character: updated });
   }
 

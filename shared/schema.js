@@ -52,7 +52,15 @@ export const CHARACTER_FIELDS = [
   },
 ];
 
-/** Fields inside `character.hp` / `token.hp`, each an int clamped to [min, max]. */
+// `statusEffects` is deliberately NOT in CHARACTER_FIELDS above: it's a list
+// validated against the STATUS_EFFECTS vocabulary (see Character.fromInput),
+// not a simple scalar text/int/color field, and CHARACTER_FIELDS' `default`
+// values are shared object literals — an `[]` default there would alias the
+// same array across every Character instance instead of each getting its
+// own. Handled explicitly in the constructor/clone/fromInput instead, the
+// same way `hp` and `abilityScores` already are.
+
+/** Fields inside `character.hp`, each an int clamped to [min, max]. */
 export const HP_FIELDS = [
   { key: "current", label: "HP (current)", min: -9999, max: 9999, default: 10 },
   { key: "max", label: "HP (max)", min: 0, max: 9999, default: 10 },
@@ -84,7 +92,44 @@ export const TOKEN_FIELDS = [
     maxLength: 40,
     default: null,
   },
+  {
+    // References the id of the Character (and, from Phase 2 on, a monster
+    // instance) this token is a read-only projection of. HP and status
+    // effects are never stored here — see `computeCondition`/`GameStateStore`
+    // for how the board derives bloodied/status display from the source
+    // record instead. null for a bare DM-controlled token with no linked
+    // combatant record.
+    key: "combatantId",
+    kind: "text",
+    label: "Linked combatant id",
+    maxLength: 40,
+    default: null,
+  },
+  {
+    // Which store `combatantId` should be looked up in: 'character' (a
+    // player's saved Character, via server/db.js) or 'monster' (a
+    // MonsterInstance placed from the Phase 2 monster library, via
+    // GameStateStore#monsterInstances). null alongside a null combatantId.
+    key: "combatantType",
+    kind: "text",
+    label: "Linked combatant type",
+    maxLength: 20,
+    default: null,
+  },
 ];
+
+/**
+ * Given an HP-like `{ current, max }`, the qualitative condition safe to
+ * broadcast to players who don't own this combatant: no numbers, just
+ * 'healthy' | 'bloodied' | 'critical'. Single choke point for this
+ * computation — see the redacted-broadcast note in ARCHITECTURE.md.
+ */
+export function computeCondition(hp) {
+  if (!hp || hp.max <= 0) return "healthy";
+  if (hp.current <= 0) return "critical";
+  if (hp.current / hp.max <= 0.5) return "bloodied";
+  return "healthy";
+}
 
 /**
  * The fixed vocabulary of status-effect tags the DM can toggle on a token
@@ -181,7 +226,7 @@ export const STATUS_EFFECTS = {
 /**
  * Area-of-effect overlay types. `effectTag` is the status-effect-like tag
  * automatically applied (as `token.overlayEffects`, kept separate from the
- * DM's manually-set `token.statusEffects`) to any token whose cell falls
+ * the DM's manually-set `character.statusEffects`) to any token whose cell falls
  * inside an overlay of this type — see server/gameState.js's
  * `recomputeOverlayEffects`. `generic` has no automatic effect, useful for
  * marking an area (e.g. difficult terrain) without implying a condition.
@@ -269,6 +314,10 @@ export class Character {
     this.id = null;
     this.hp = HitPoints.default();
     this.abilityScores = {};
+    // Combat-time status tags, DM-edited (see the DM sidebar quick-edit
+    // controls) — this, plus `hp`, is the single source of truth for a
+    // combatant's state; tokens and the initiative tracker only ever read it.
+    this.statusEffects = [];
     for (const key of ABILITY_KEYS) this.abilityScores[key] = 10;
     for (const field of CHARACTER_FIELDS) this[field.key] = field.default;
   }
@@ -282,6 +331,7 @@ export class Character {
     const c = Object.assign(new Character(), existing);
     c.hp = HitPoints.clone(existing.hp);
     c.abilityScores = { ...existing.abilityScores };
+    c.statusEffects = [...(existing.statusEffects || [])];
     return c;
   }
 
@@ -314,13 +364,186 @@ export class Character {
       }
     }
 
+    if (input.statusEffects !== undefined) {
+      const list = Array.isArray(input.statusEffects) ? input.statusEffects : [];
+      c.statusEffects = list.filter((tag) => STATUS_EFFECTS[tag]).slice(0, Object.keys(STATUS_EFFECTS).length);
+    }
+
     return c;
   }
 
+  /** True if at or below half max HP. */
+  isBloodied() {
+    return this.hp.isBloodied();
+  }
+
+  /** The qualitative, no-numbers condition safe to broadcast to non-owners. */
+  condition() {
+    return computeCondition(this.hp);
+  }
+
   toJSON() {
-    const out = { id: this.id, hp: this.hp.toJSON(), abilityScores: { ...this.abilityScores } };
+    const out = {
+      id: this.id,
+      hp: this.hp.toJSON(),
+      abilityScores: { ...this.abilityScores },
+      statusEffects: [...this.statusEffects],
+    };
     for (const field of CHARACTER_FIELDS) out[field.key] = this[field.key];
     return out;
+  }
+}
+
+/**
+ * A monster placed on the board from the Phase 2 `dnd-data` library — the
+ * "Combatant" concept the design doc calls for, minimal enough to serve just
+ * what combat needs. Deliberately NOT a rework of Character: it's a small,
+ * separate class that happens to share the same `hp`/`statusEffects`/
+ * `condition()` shape (and the same `computeCondition` function) so the DM
+ * sidebar's quick-edit controls, the redacted broadcast, token rendering,
+ * and initiative lookups can treat a MonsterInstance and a Character
+ * identically wherever only combat state matters (see GameStateStore's
+ * combatant lookup and public/js/views/combatantEditor.js).
+ *
+ * `templateId`/`name`/`ac`/`speed`/`cr`/`type`/`size`/`attacks`/`source` are
+ * a read-only snapshot taken from the `dnd-data` entry at placement time
+ * (see server/monsterLibrary.js) — this app has no homebrew monster editor,
+ * so those fields are never re-validated from client input the way
+ * Character's are. Only `hp` and `statusEffects` are ever edited after
+ * placement.
+ */
+export class MonsterInstance {
+  constructor() {
+    this.id = null;
+    this.templateId = null;
+    this.name = "Monster";
+    this.ac = null;
+    this.hp = HitPoints.default();
+    this.statusEffects = [];
+    this.speed = "";
+    this.cr = null;
+    this.type = "";
+    this.size = "";
+    this.attacks = []; // [{ name, toHit, damage, damageType, desc }]
+    this.source = "";
+  }
+
+  /**
+   * Builds a brand-new instance from a monster template (see
+   * server/monsterLibrary.js's `MonsterTemplate` shape) — every instance
+   * starts at the template's full HP. `id` is assigned by the caller
+   * (GameStateStore), same as Token/Overlay ids.
+   */
+  static fromTemplate(template) {
+    const m = new MonsterInstance();
+    m.templateId = template.id;
+    m.name = template.name;
+    m.ac = template.ac;
+    m.hp = new HitPoints(template.hpMax ?? 10, template.hpMax ?? 10);
+    m.speed = template.speed || "";
+    m.cr = template.cr ?? null;
+    m.type = template.type || "";
+    m.size = template.size || "";
+    m.attacks = template.attacks || [];
+    m.source = template.source || "";
+    return m;
+  }
+
+  static clone(existing) {
+    const m = Object.assign(new MonsterInstance(), existing);
+    m.hp = HitPoints.clone(existing.hp);
+    m.statusEffects = [...(existing.statusEffects || [])];
+    m.attacks = existing.attacks.map((a) => ({ ...a }));
+    return m;
+  }
+
+  /**
+   * Partial update — only `hp` and `statusEffects` are ever accepted here
+   * (the DM sidebar quick-edit's only two controls for a monster instance);
+   * everything else is the immutable template snapshot from placement time.
+   */
+  static fromInput(input, existing) {
+    const m = MonsterInstance.clone(existing);
+    if (input.hp) m.hp = HitPoints.fromInput(input.hp, m.hp);
+    if (input.statusEffects !== undefined) {
+      const list = Array.isArray(input.statusEffects) ? input.statusEffects : [];
+      m.statusEffects = list.filter((tag) => STATUS_EFFECTS[tag]).slice(0, Object.keys(STATUS_EFFECTS).length);
+    }
+    return m;
+  }
+
+  /** The qualitative, no-numbers condition safe to broadcast to non-owners — identical to Character's. */
+  condition() {
+    return computeCondition(this.hp);
+  }
+
+  toJSON() {
+    return {
+      id: this.id,
+      templateId: this.templateId,
+      name: this.name,
+      ac: this.ac,
+      hp: this.hp.toJSON(),
+      statusEffects: [...this.statusEffects],
+      speed: this.speed,
+      cr: this.cr,
+      type: this.type,
+      size: this.size,
+      attacks: this.attacks.map((a) => ({ ...a })),
+      source: this.source,
+    };
+  }
+}
+
+/**
+ * A named, saved pre-session encounter: a full snapshot of the board —
+ * background, grid, tokens (with position), overlays, turn order, and
+ * monster instances — captured verbatim from `GameStateStore#toSnapshotJSON`
+ * at save time. Loading an encounter restores that entire snapshot (see
+ * `GameStateStore#restoreSnapshot`), replacing whatever's currently on the
+ * board, rather than spawning tokens alongside the existing state.
+ *
+ * `snapshot` is opaque to this class — it's always server-constructed (from
+ * live `GameStateStore` state), never typed by hand on the client, so it's
+ * stored as-is rather than field-validated the way `Character`'s input is.
+ * Only `name` is genuinely user input here.
+ */
+export class Encounter {
+  constructor() {
+    this.id = null;
+    this.name = "New Encounter";
+    this.snapshot = null;
+  }
+
+  static default() {
+    return new Encounter();
+  }
+
+  static clone(existing) {
+    const e = Object.assign(new Encounter(), existing);
+    e.snapshot = existing.snapshot;
+    return e;
+  }
+
+  /**
+   * Merge + validate a partial Encounter payload. `name` is sanitized like
+   * any other text field; `snapshot` (if provided) fully replaces the
+   * existing one — there's no partial snapshot update.
+   */
+  static fromInput(input, existing) {
+    const e = existing ? Encounter.clone(existing) : new Encounter();
+    if (input.name !== undefined) {
+      const str = String(input.name).trim().slice(0, 60);
+      e.name = str || "Unnamed Encounter";
+    }
+    if (input.snapshot !== undefined) {
+      e.snapshot = input.snapshot;
+    }
+    return e;
+  }
+
+  toJSON() {
+    return { id: this.id, name: this.name, snapshot: this.snapshot };
   }
 }
 
@@ -356,15 +579,25 @@ export class Grid {
 }
 
 /**
- * A token on the board. `hp`/`statusEffects` default to a healthy,
- * unaffected token; `overlayEffects` is computed by `recomputeOverlayEffects`
- * (see GameStateStore) and never set directly from client input.
+ * A token on the board: a read-only projection of its position plus a
+ * reference (`combatantId`) to the Character (or, from Phase 2, monster
+ * instance) it displays. It never stores its own HP/status — those are
+ * looked up from the source record (see `computeCondition` and
+ * GameStateStore#getState's `combatantStatuses`). `overlayEffects` is the one
+ * exception: it's environmental (AoE overlay membership), computed by
+ * `recomputeOverlayEffects` (see GameStateStore) and never set from client
+ * input.
  */
 export class Token {
   constructor() {
     this.id = null;
-    this.hp = HitPoints.default();
-    this.statusEffects = [];
+    // overlayEffects is the only auto-computed, token-specific "effect" list
+    // left on Token — it's environmental (which AoE overlay cells this token
+    // currently sits in), not combat state. HP and status effects live only
+    // on the linked Character (or, from Phase 2, monster instance) referenced
+    // by `combatantId` — see computeCondition() and GameStateStore's
+    // combatantStatuses. A token with no combatantId (a bare DM marker) has
+    // no HP/status concept at all in v1.
     this.overlayEffects = [];
     for (const field of TOKEN_FIELDS) this[field.key] = field.default;
   }
@@ -375,8 +608,6 @@ export class Token {
 
   static clone(existing) {
     const t = Object.assign(new Token(), existing);
-    t.hp = HitPoints.clone(existing.hp);
-    t.statusEffects = [...existing.statusEffects];
     t.overlayEffects = [...existing.overlayEffects];
     return t;
   }
@@ -384,10 +615,10 @@ export class Token {
   /**
    * Validate a Token payload. `grid` is the current board grid, used to clamp
    * `col`/`row` into bounds. `existing` is the current token when this is a
-   * partial update (e.g. the DM editing just HP/status effects) — every
-   * field is independently optional in `input`, mirroring
-   * `Character.fromInput`. `id` and `overlayEffects` are assigned/computed by
-   * the caller (GameStateStore), never from `input`.
+   * partial update (e.g. the DM renaming/recoloring it) — every field is
+   * independently optional in `input`, mirroring `Character.fromInput`. `id`
+   * and `overlayEffects` are assigned/computed by the caller (GameStateStore),
+   * never from `input`.
    */
   static fromInput(input, grid, existing) {
     const t = existing ? Token.clone(existing) : new Token();
@@ -408,20 +639,7 @@ export class Token {
       t.row = Validators.clampInt(t.row, 0, Math.max(0, grid.rows - 1), t.row);
     }
 
-    if (input.hp) t.hp = HitPoints.fromInput(input.hp, t.hp);
-
-    if (input.statusEffects !== undefined) {
-      const list = Array.isArray(input.statusEffects) ? input.statusEffects : [];
-      // t.statusEffects = list.filter((tag) => STATUS_EFFECTS.includes(tag)).slice(0, STATUS_EFFECTS.length);
-      t.statusEffects = list.filter((tag) => STATUS_EFFECTS[tag]).slice(0, Object.keys(STATUS_EFFECTS).length);
-    }
-
     return t;
-  }
-
-  /** True if this token is at or below half its max HP. */
-  isBloodied() {
-    return this.hp.isBloodied();
   }
 
   /** True if this token's cell falls inside `overlay`'s area. */
@@ -454,8 +672,6 @@ export class Token {
   toJSON() {
     const out = {
       id: this.id,
-      hp: this.hp.toJSON(),
-      statusEffects: [...this.statusEffects],
       overlayEffects: [...this.overlayEffects],
     };
     for (const field of TOKEN_FIELDS) out[field.key] = this[field.key];

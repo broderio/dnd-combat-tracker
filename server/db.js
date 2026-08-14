@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
-import { Character } from "../shared/schema.js";
+import { Character, Encounter } from "../shared/schema.js";
 
 // ESM has no built-in `__dirname` — this is the standard way to recover it.
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -25,18 +25,20 @@ export class Database {
   constructor(dbPath) {
     this.dbPath = dbPath;
     this.nextCharId = Date.now();
+    this.nextEncounterId = Date.now();
   }
 
   loadDB() {
-    if (!fs.existsSync(this.dbPath)) return { users: {} };
+    if (!fs.existsSync(this.dbPath)) return { users: {}, encounters: [] };
     try {
       const raw = fs.readFileSync(this.dbPath, "utf8");
       const parsed = JSON.parse(raw);
       if (!parsed.users) parsed.users = {};
+      if (!parsed.encounters) parsed.encounters = []; // older db.json files predate Phase 3
       return parsed;
     } catch (err) {
       console.error("Failed to read db.json, starting fresh:", err.message);
-      return { users: {} };
+      return { users: {}, encounters: [] };
     }
   }
 
@@ -67,6 +69,20 @@ export class Database {
   }
 
   /**
+   * Looks up a single character by owner username + character id. Used by
+   * GameStateStore to resolve a token's `combatantId` into its source
+   * record when computing the redacted public combatant-status broadcast.
+   * Returns null if the user or character doesn't exist.
+   */
+  findCharacter(username, characterId) {
+    if (!username || !characterId) return null;
+    const db = this.loadDB();
+    const user = db.users[username.toLowerCase()];
+    if (!user) return null;
+    return user.characters.find((c) => c.id === characterId) || null;
+  }
+
+  /**
    * Field-level validation/defaults live in `shared/schema.js`'s `Character`
    * class (single source of truth, also used by the browser client). This
    * method only adds the one thing that's genuinely server-only: assigning a
@@ -76,6 +92,45 @@ export class Database {
     const c = Character.fromInput(input, existing);
     if (!existing) c.id = this.generateCharacterId();
     return c;
+  }
+
+  // ---------------- Encounters (Phase 3) ----------------
+
+  generateEncounterId() {
+    return "enc_" + this.nextEncounterId++;
+  }
+
+  getEncounters() {
+    return this.loadDB().encounters;
+  }
+
+  getEncounter(id) {
+    return this.loadDB().encounters.find((e) => e.id === id) || null;
+  }
+
+  createEncounter(input) {
+    const db = this.loadDB();
+    const encounter = Encounter.fromInput(input, null);
+    encounter.id = this.generateEncounterId();
+    db.encounters.push(encounter.toJSON());
+    this.saveDB(db);
+    return encounter;
+  }
+
+  updateEncounter(id, input) {
+    const db = this.loadDB();
+    const idx = db.encounters.findIndex((e) => e.id === id);
+    if (idx === -1) return null;
+    const updated = Encounter.fromInput(input, db.encounters[idx]);
+    db.encounters[idx] = updated.toJSON();
+    this.saveDB(db);
+    return updated;
+  }
+
+  deleteEncounter(id) {
+    const db = this.loadDB();
+    db.encounters = db.encounters.filter((e) => e.id !== id);
+    this.saveDB(db);
   }
 }
 
