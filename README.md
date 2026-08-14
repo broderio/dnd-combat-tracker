@@ -126,7 +126,4 @@ More permanent, but requires router access:
 ## TODO
 1. Select from a dropdown of already uploaded backgrounds.
 2. Create a section in the database called "saved_boards" and add a UI section that allows the DM to save the current state as a board, load from a previous save, and delete saves.
-3. Make the sidebars scrollable, the grid map zoomable, and give the page a fixed height.
-6. Display the entire initiative order as a scrollable section at the top of the page, with the current turn highlighted.
-7. Sync the character sheet HP with the token HP. They should initially have the same values and should be updated when the HP is updated from either the player's side in the character sheet, or the DM side in the token.
-8. Create individual indicators for status effects on the tokens. These should be colored with the first letter of the status effect in the center. They should render from the top right to the bottom right of the token.
+3. Sync the character sheet HP with the token HP. They should initially have the same values and should be updated when the HP is updated from either the player's side in the character sheet, or the DM side in the token.

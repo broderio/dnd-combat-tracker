@@ -91,7 +91,8 @@ class TokenEditorView {
 
     const effectsGrid = document.createElement("div");
     effectsGrid.className = "status-effect-grid";
-    const checkboxes = STATUS_EFFECTS.map((effect) => {
+    // const checkboxes = STATUS_EFFECTS.map((effect) => {
+    const checkboxes = Object.keys(STATUS_EFFECTS).map((effect) => {
       const label = document.createElement("label");
       label.className = "status-effect-option";
       const cb = document.createElement("input");

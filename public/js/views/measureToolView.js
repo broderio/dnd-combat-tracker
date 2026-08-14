@@ -157,7 +157,7 @@ class MeasureToolView {
 
     const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
     label.setAttribute("x", x);
-    label.setAttribute("y", y - cells * cs - 8);
+    label.setAttribute("y", y);
     label.setAttribute("class", "measure-label");
     label.setAttribute("text-anchor", "middle");
     label.textContent = `${cells} cell${cells === 1 ? "" : "s"} · ${feet} ft`;

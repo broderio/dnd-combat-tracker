@@ -359,14 +359,23 @@ body {
   padding: 10px 18px;
 }
 
+#game-screen {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 /* ---------- Character sidebar (in-game) ---------- */
+/* TODO: Make the character sidebar vertically scrollable. */
 #character-sidebar {
-  width: 280px;
+  width: auto;
   flex-shrink: 0;
   background: var(--wood-light);
   border-left: 1px solid var(--line);
   padding: 18px;
   overflow-y: auto;
+  min-height: 0;
 }
 
 #character-sidebar h2 {
@@ -491,7 +500,8 @@ body {
 }
 
 .brand {
-  font-weight: 700;
+  font-size: 1.2rem;
+  font-weight: 1200;
   color: var(--ember-bright);
   letter-spacing: 0.03em;
 }
@@ -503,6 +513,33 @@ body {
   border: 1px solid var(--line);
   font-size: 0.8rem;
   color: var(--parchment-dim);
+}
+
+/* turn-list should be centered within the topbar */
+.turn-list {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  gap: 6px;
+  margin: 0 auto;
+  width: fit-content;
+  padding: 0 10px;
+}
+
+.turn-list-badge {
+  flex: 0 0 auto;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--wood);
+  border: 1px solid var(--line);
+  font-size: 0.8rem;
+  color: var(--parchment-dim);
+}
+
+.turn-list-badge.current {
+  background: var(--ember);
+  color: #fff;
 }
 
 #presence-log {
@@ -518,9 +555,11 @@ body {
 
 #layout {
   display: flex;
-  min-height: calc(100vh - 49px);
+  flex: 1;
+  min-height: 0;
 }
 
+/* TODO: DM panel should be vertically scrollable. */
 #dm-panel {
   width: 300px;
   flex-shrink: 0;
@@ -528,6 +567,7 @@ body {
   border-right: 1px solid var(--line);
   padding: 18px;
   overflow-y: auto;
+  min-height: 0;
 }
 
 #dm-panel h2 {
@@ -618,17 +658,30 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   padding: 24px;
-  overflow: auto;
+  overflow: hidden;
+  min-height: 0;
 }
 
 #board {
   position: relative;
+  margin: 0;
+  padding: 0;
   background-color: #24303a;
-  background-size: cover;
-  background-position: center;
+  /* Stretched to exactly fill the board's box (not "cover"/"center"), so the
+     background lines up 1:1 with the grid/overlay/token coordinate system
+     instead of being cropped or centered independently of it. */
+  background-size: 100% 100%;
+  background-position: 0 0;
+  background-repeat: no-repeat;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
   border: 1px solid var(--line);
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 #background-layer,
@@ -639,8 +692,6 @@ body {
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
 }
 
 #grid-layer,
@@ -651,6 +702,9 @@ body {
 #grid-layer line {
   stroke: rgba(236, 226, 200, 0.35);
   stroke-width: 1;
+}
+#grid-layer {
+  display: block;
 }
 
 .overlay-shape {
@@ -718,13 +772,39 @@ body {
 .token.bloodied {
   box-shadow: 0 0 10px 4px rgba(220, 40, 40, 0.85);
 }
-.token.has-effect {
-  box-shadow: 0 0 8px 3px rgba(230, 200, 60, 0.75);
+.token-effects {
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  pointer-events: none;
+  z-index: 2;
 }
-.token.bloodied.has-effect {
-  box-shadow:
-    0 0 10px 4px rgba(220, 40, 40, 0.85),
-    0 0 4px 8px rgba(230, 200, 60, 0.45);
+.token-effect {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+.token-effect-icon {
+  font-family: "Material Symbols Rounded";
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 600;
+  font-style: normal;
+  font-variation-settings:
+    "FILL" 1,
+    "wght" 600,
+    "GRAD" 0,
+    "opsz" 20;
 }
 .token.active-turn {
   outline: 3px solid #ffe08a;

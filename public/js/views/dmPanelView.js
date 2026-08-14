@@ -16,7 +16,6 @@ const uploadForm = document.getElementById("upload-form");
 const backgroundInput = document.getElementById("background-input");
 const gridCols = document.getElementById("grid-cols");
 const gridRows = document.getElementById("grid-rows");
-const gridCellSize = document.getElementById("grid-cellsize");
 const gridVisible = document.getElementById("grid-visible");
 const applyGridBtn = document.getElementById("apply-grid-btn");
 
@@ -32,10 +31,9 @@ const tokenList = document.getElementById("token-list");
  * clobbering whatever the DM is actively typing.
  */
 export function syncGridFormFromState() {
-  if (document.activeElement && ["grid-cols", "grid-rows", "grid-cellsize"].includes(document.activeElement.id)) return;
+  if (document.activeElement && ["grid-cols", "grid-rows"].includes(document.activeElement.id)) return;
   gridCols.value = clientState.board.grid.cols;
   gridRows.value = clientState.board.grid.rows;
-  gridCellSize.value = clientState.board.grid.cellSize;
   gridVisible.checked = clientState.board.grid.visible;
 }
 
@@ -77,7 +75,6 @@ applyGridBtn.addEventListener("click", () => {
   socketClient.emitEvent(EVENTS.SET_GRID, {
     cols: gridCols.value,
     rows: gridRows.value,
-    cellSize: gridCellSize.value,
     visible: gridVisible.checked,
   });
 });

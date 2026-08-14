@@ -92,22 +92,91 @@ export const TOKEN_FIELDS = [
  * the DM panel can render it as checkboxes and the board can render short
  * badges without guessing at arbitrary strings.
  */
-export const STATUS_EFFECTS = [
-  "blinded",
-  "charmed",
-  "deafened",
-  "frightened",
-  "grappled",
-  "incapacitated",
-  "invisible",
-  "paralyzed",
-  "petrified",
-  "poisoned",
-  "prone",
-  "restrained",
-  "stunned",
-  "unconscious",
-];
+export const STATUS_EFFECTS = {
+  blinded: {
+    icon: "visibility_off",
+    background: "#1c1c1c",
+    color: "#f5f5f5",
+  },
+
+  charmed: {
+    icon: "favorite",
+    background: "#8e2a72",
+    color: "#ffd6f3",
+  },
+
+  deafened: {
+    icon: "hearing_disabled",
+    background: "#4a3270",
+    color: "#e6d8ff",
+  },
+
+  frightened: {
+    icon: "sentiment_very_dissatisfied",
+    background: "#6b4f1d",
+    color: "#ffe082",
+  },
+
+  grappled: {
+    icon: "front_hand",
+    background: "#8a4b16",
+    color: "#ffe0b2",
+  },
+
+  incapacitated: {
+    icon: "block",
+    background: "#424242",
+    color: "#eeeeee",
+  },
+
+  invisible: {
+    icon: "visibility",
+    background: "#176b87",
+    color: "#b8f0ff",
+  },
+
+  paralyzed: {
+    icon: "accessibility_new",
+    background: "#b8860b",
+    color: "#fff8d6",
+  },
+
+  petrified: {
+    icon: "landscape",
+    background: "#696969",
+    color: "#f1f1f1",
+  },
+
+  poisoned: {
+    icon: "science",
+    background: "#397a24",
+    color: "#dfffcc",
+  },
+
+  prone: {
+    icon: "airline_seat_flat",
+    background: "#5a4632",
+    color: "#ffe0b2",
+  },
+
+  restrained: {
+    icon: "link",
+    background: "#8b2f2f",
+    color: "#ffd0d0",
+  },
+
+  stunned: {
+    icon: "bolt",
+    background: "#b05a00",
+    color: "#fff0c2",
+  },
+
+  unconscious: {
+    icon: "bed",
+    background: "#263238",
+    color: "#d1b3e8",
+  },
+};
 
 /**
  * Area-of-effect overlay types. `effectTag` is the status-effect-like tag
@@ -343,7 +412,8 @@ export class Token {
 
     if (input.statusEffects !== undefined) {
       const list = Array.isArray(input.statusEffects) ? input.statusEffects : [];
-      t.statusEffects = list.filter((tag) => STATUS_EFFECTS.includes(tag)).slice(0, STATUS_EFFECTS.length);
+      // t.statusEffects = list.filter((tag) => STATUS_EFFECTS.includes(tag)).slice(0, STATUS_EFFECTS.length);
+      t.statusEffects = list.filter((tag) => STATUS_EFFECTS[tag]).slice(0, Object.keys(STATUS_EFFECTS).length);
     }
 
     return t;
@@ -513,4 +583,3 @@ export class TurnOrder {
     };
   }
 }
-

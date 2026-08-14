@@ -6,6 +6,7 @@
     <title>Combat Tracker</title>
     <link rel="stylesheet" href="style.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:FILL@1">
   </head>
   <body>
     <!-- Step 1: mode + login -->
@@ -140,9 +141,9 @@
     <!-- Game screen -->
     <div id="game-screen" class="screen hidden">
       <header id="topbar">
-        <div class="brand">Combat Tracker</div>
+        <div class="brand">DnD Combat Tracker</div>
         <div id="role-badge" class="badge">—</div>
-        <div id="turn-banner" class="badge hidden"></div>
+        <div id="turn-banner" class="turn-list hidden"></div>
         <div id="presence-log"></div>
       </header>
 
@@ -159,7 +160,6 @@
           <div class="grid-controls">
             <label>Columns <input id="grid-cols" type="number" min="1" max="100" /></label>
             <label>Rows <input id="grid-rows" type="number" min="1" max="100" /></label>
-            <label>Cell size (px) <input id="grid-cellsize" type="number" min="10" max="200" /></label>
             <label class="checkbox-label">
               <input id="grid-visible" type="checkbox" /> Show grid lines to players
             </label>

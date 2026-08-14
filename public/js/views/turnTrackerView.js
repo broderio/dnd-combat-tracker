@@ -18,7 +18,6 @@ const turnBanner = document.getElementById("turn-banner");
 
 /** DM-only: one row per token with an initiative number input, prefilled from the current order (if any). */
 export function renderInitiativeList() {
-  if (clientState.session.mode !== "dm") return;
   initiativeList.innerHTML = "";
   const existingByToken = new Map((clientState.board.turnOrder.combatants || []).map((c) => [c.tokenId, c.initiative]));
 
@@ -49,16 +48,23 @@ setTurnOrderBtn.addEventListener("click", () => {
 
 nextTurnBtn.addEventListener("click", () => socketClient.emitEvent(EVENTS.NEXT_TURN));
 
-/** The "whose turn is it" banner — rendered for everyone, DM and players alike. */
 export function renderTurnBanner() {
   const order = clientState.board.turnOrder;
   if (!order || !order.combatants.length || order.currentIndex < 0) {
-    turnBanner.textContent = "";
     turnBanner.classList.add("hidden");
     return;
   }
-  const current = order.combatants[order.currentIndex];
-  const token = clientState.board.tokens[current.tokenId];
-  turnBanner.textContent = `Round ${order.round} — ${token ? token.name : "Unknown"}'s turn`;
+
+  turnBanner.replaceChildren();
+  turnBanner.appendChild(document.createTextNode("Round " + order.round + ":"));
+  // Add each combatant to the banner, highlighting the current one.
+  order.combatants.forEach((c, i) => {
+    const token = clientState.board.tokens[c.tokenId];
+    if (!token) return;
+    const span = document.createElement("span");
+    span.className = "turn-list-badge" + (i === order.currentIndex ? " current" : "");
+    span.textContent = token.name;
+    turnBanner.appendChild(span);
+  });
   turnBanner.classList.remove("hidden");
 }
