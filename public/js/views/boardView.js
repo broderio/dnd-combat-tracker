@@ -123,7 +123,10 @@ export class BoardView {
 
     const hpText = token.hp ? ` — HP ${token.hp.current}/${token.hp.max}` : "";
     const effectsText = effects.length ? ` [${effects.join(", ")}]` : "";
-    el.title = (token.owner ? `${token.name} (controlled by ${token.owner})` : `${token.name} (DM-controlled)`) + hpText + effectsText;
+    el.title =
+      (token.owner ? `${token.name} (controlled by ${token.owner})` : `${token.name} (DM-controlled)`) +
+      hpText +
+      effectsText;
   }
 
   /**
@@ -200,8 +203,36 @@ export class BoardView {
       .toUpperCase();
   }
 
+  disableDragging() {
+    this.draggingDisabled = true;
+    this.boardEl.style.cursor = "crosshair";
+
+    board = clientState.board;
+    Object.values(board.tokens).forEach((token) => {
+      const el = this.tokenLayer.querySelector(`[data-id="${token.id}"]`);
+      if (el) el.classList.remove("draggable");
+    });
+  }
+
+  enableDragging() {
+    this.draggingDisabled = false;
+    this.boardEl.style.cursor = "";
+
+    board = clientState.board;
+    Object.values(board.tokens).forEach((token) => {
+      const el = this.tokenLayer.querySelector(`[data-id="${token.id}"]`);
+      if (!el) return;
+      const canDrag =
+        clientState.session.mode === "dm" ||
+        (token.owner && token.owner.toLowerCase() === clientState.session.name.toLowerCase());
+      el.classList.toggle("draggable", canDrag);
+      el.classList.toggle("locked", !canDrag);
+    });
+  }
+
   #attachDrag(el, id) {
     el.addEventListener("pointerdown", (e) => {
+      if (this.draggingDisabled) return;
       this.draggingId = id;
       el.classList.add("dragging");
       el.setPointerCapture(e.pointerId);
@@ -285,5 +316,9 @@ export function getBoardElement() {
 export function cellFromEvent(e) {
   return boardView.cellFromEvent(e);
 }
-
-
+export function disableDragging() {
+  boardView.disableDragging();
+}
+export function enableDragging() {
+  boardView.enableDragging();
+}

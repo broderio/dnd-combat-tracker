@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Combat Tracker</title>
     <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
   </head>
   <body>
     <!-- Step 1: mode + login -->
@@ -202,14 +203,15 @@
             </label>
             <label>Radius (cells) <input id="overlay-radius" type="number" min="1" max="30" value="2" /></label>
             <label>Label (optional) <input id="overlay-label" type="text" maxlength="40" placeholder="e.g. Fireball" /></label>
-            <button id="place-overlay-btn" class="secondary-btn">Place on Grid</button>
+            <button id="place-overlay-btn" class="toggle-btn">Place on Grid</button>
           </div>
           <ul id="overlay-list"></ul>
         </aside>
 
         <main id="board-wrap">
           <div id="board-toolbar">
-            <button id="measure-tool-btn" class="secondary-btn">📏 Measure</button>
+            <button id="measure-line-btn" class="toggle-btn"><i class="material-icons">square_foot</i></button>
+            <button id="measure-radius-btn" class="toggle-btn"><i class="material-icons">adjust</i></button>
           </div>
           <div id="board">
             <div id="background-layer"></div>

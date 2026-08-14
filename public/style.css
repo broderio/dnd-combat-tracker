@@ -27,6 +27,7 @@ body {
   display: none !important;
 }
 
+
 /* ---------- Join screen ---------- */
 .screen.center-fallback,
 #join-screen {
@@ -107,7 +108,8 @@ body {
 }
 
 .primary-btn,
-.secondary-btn {
+.secondary-btn,
+.toggle-btn {
   cursor: pointer;
   font-family: inherit;
   border-radius: 6px;
@@ -136,6 +138,19 @@ body {
   margin-top: 6px;
 }
 .secondary-btn:hover {
+  border-color: var(--ember);
+  color: var(--ember-bright);
+}
+
+.toggle-btn {
+  width: 100%;
+  padding: 8px;
+  background: var(--wood);
+  border: 1px solid var(--line);
+  color: var(--parchment);
+  margin-top: 6px;
+}
+.toggle-btn:hover, .toggle-btn.active {
   border-color: var(--ember);
   color: var(--ember-bright);
 }
@@ -649,6 +664,12 @@ body {
   stroke-width: 3;
   stroke-dasharray: 6 4;
 }
+.measure-radius {
+  fill: rgba(224, 112, 63, 0.15);
+  stroke: var(--ember-bright);
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+}
 .measure-label {
   fill: var(--parchment);
   font-size: 13px;
@@ -671,8 +692,11 @@ body {
   font-size: 0.7rem;
   font-weight: 700;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-  cursor: grab;
   user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
   touch-action: none;
   transition:
     left 0.08s ease,
