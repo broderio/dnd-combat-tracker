@@ -1,21 +1,22 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { sanitizeCharacter as sanitizeCharacterAgainstSchema } from '../shared/schema.js';
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+import { sanitizeCharacter as sanitizeCharacterAgainstSchema } from "../shared/schema.js";
 
 // ESM has no built-in `__dirname` — this is the standard way to recover it.
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DB_PATH = path.join(__dirname, '..', 'data', 'db.json');
+const DB_PATH = path.join(__dirname, "..", "data", "db.json");
 
 export function loadDB() {
   if (!fs.existsSync(DB_PATH)) return { users: {} };
   try {
-    const raw = fs.readFileSync(DB_PATH, 'utf8');
+    const raw = fs.readFileSync(DB_PATH, "utf8");
     const parsed = JSON.parse(raw);
     if (!parsed.users) parsed.users = {};
     return parsed;
   } catch (err) {
-    console.error('Failed to read db.json, starting fresh:', err.message);
+    console.error("Failed to read db.json, starting fresh:", err.message);
     return { users: {} };
   }
 }
@@ -27,7 +28,7 @@ export function saveDB(db) {
 
 let nextCharId = Date.now();
 function generateCharId() {
-  return 'char_' + (nextCharId++);
+  return "char_" + nextCharId++;
 }
 
 // Field-level validation/defaults live in shared/schema.js (single source of

@@ -8,6 +8,7 @@ from outside your home network.
 ## What's in this POC (and what isn't yet)
 
 **Working now:**
+
 - DM and Player join screens with different permissions
 - **Player accounts**: username + PIN. First login with a username registers it with that PIN; later logins must match. Usernames are unique (case-insensitive) and persist across server restarts in `data/db.json`.
 - **Character sheets**: players can save one or more characters (class, race, level, AC, current/max HP, all six ability scores, freeform notes). Rejoining under the same username lets you pick which character to play, or create a new one.
@@ -21,10 +22,11 @@ from outside your home network.
 - Everything syncs live over WebSockets — open it on two laptops and move a token on one, watch it move on the other
 
 **Not built yet (from your full requirements list)** — these are the natural next layers once the connection model is proven out:
+
 - Status effect icons on tokens
-- Qualitative HP display *for enemy/monster tokens* — the character sidebar now shows real HP to the owning player and the DM, which is correct for PCs, but enemy tokens don't yet have a player-facing "bloodied / near death" style indicator
+- Qualitative HP display _for enemy/monster tokens_ — the character sidebar now shows real HP to the owning player and the DM, which is correct for PCs, but enemy tokens don't yet have a player-facing "bloodied / near death" style indicator
 - Area-of-effect overlays (fire, water, electricity, etc.)
-- Persistent save/load of *board* state (background, grid, tokens) — accounts and characters now persist, but the map/token layout still resets when the server restarts
+- Persistent save/load of _board_ state (background, grid, tokens) — accounts and characters now persist, but the map/token layout still resets when the server restarts
 
 ## 1. Install
 
@@ -80,6 +82,7 @@ alternative if you'd rather not create an ngrok account.
 ### Option B — Port forwarding on your router
 
 More permanent, but requires router access:
+
 1. Find your laptop's LAN IP (the "Network:" address the server printed).
 2. In your router's admin page, forward external port 3000 to that IP on port 3000.
 3. Find your public IP (search "what's my ip") and share `http://<public-ip>:3000` with players.
@@ -112,7 +115,7 @@ More permanent, but requires router access:
   security) and is fine for a private game with friends. Worth revisiting with real
   hashed passwords if this ever ran somewhere less trusted.
 - Any REST call that touches `/api/characters/:username` currently just trusts the
-  username in the URL — there's no token proving the caller *is* that user beyond
+  username in the URL — there's no token proving the caller _is_ that user beyond
   having logged in client-side. Low-stakes for a friends game, but worth knowing.
 - If someone's connection drops mid-session (WiFi blip, laptop sleep) with their tab
   still open, the client now automatically re-sends its join info the moment

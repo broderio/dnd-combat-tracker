@@ -19,39 +19,77 @@
 // `require`, no `fs`, no `path`) so it works unmodified in both environments.
 
 /** Ability score keys, in the conventional D&D order. */
-export const ABILITY_KEYS = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+export const ABILITY_KEYS = ["str", "dex", "con", "int", "wis", "cha"];
 
 /**
  * Declarative list of the simple (non-nested) Character fields.
  * `kind` drives both validation (server) and form-input type (client, stage 3).
  *   - 'text'   -> validated as a trimmed string, capped at maxLength
  *   - 'int'    -> validated as an integer, clamped to [min, max]
- *   - 'color'  -> validated as a string, capped at maxLength (e.g. "#rrggbb" = 7 chars)
+ *   - 'color'  -> validated as a string, capped at maxLength (e.g. "#rrggbb" =
+ * 7 chars)
  */
 export const CHARACTER_FIELDS = [
-  { key: 'name', kind: 'text', label: 'Name', maxLength: 60, default: 'New Character', emptyFallback: 'Unnamed' },
-  { key: 'class', kind: 'text', label: 'Class', maxLength: 40, default: '' },
-  { key: 'race', kind: 'text', label: 'Race', maxLength: 40, default: '' },
-  { key: 'level', kind: 'int', label: 'Level', min: 1, max: 20, default: 1 },
-  { key: 'ac', kind: 'int', label: 'Armor Class', min: 0, max: 40, default: 10 },
-  { key: 'notes', kind: 'text', label: 'Notes', maxLength: 2000, default: '' },
-  { key: 'tokenColor', kind: 'color', label: 'Color', maxLength: 7, default: '#e63946' }
+  {
+    key: "name",
+    kind: "text",
+    label: "Name",
+    maxLength: 60,
+    default: "New Character",
+    emptyFallback: "Unnamed",
+  },
+  { key: "class", kind: "text", label: "Class", maxLength: 40, default: "" },
+  { key: "race", kind: "text", label: "Race", maxLength: 40, default: "" },
+  { key: "level", kind: "int", label: "Level", min: 1, max: 20, default: 1 },
+  { key: "ac", kind: "int", label: "Armor Class", min: 0, max: 40, default: 10 },
+  { key: "notes", kind: "text", label: "Notes", maxLength: 2000, default: "" },
+  {
+    key: "tokenColor",
+    kind: "color",
+    label: "Color",
+    maxLength: 7,
+    default: "#e63946",
+  },
 ];
 
 /** Fields inside `character.hp`, each an int clamped to [min, max]. */
 export const HP_FIELDS = [
-  { key: 'current', label: 'HP (current)', min: -9999, max: 9999, default: 10 },
-  { key: 'max', label: 'HP (max)', min: 0, max: 9999, default: 10 }
+  { key: "current", label: "HP (current)", min: -9999, max: 9999, default: 10 },
+  { key: "max", label: "HP (max)", min: 0, max: 9999, default: 10 },
 ];
 
 /** Fields inside `grid`. */
 export const GRID_FIELDS = [
-  { key: 'cols', label: 'Columns', min: 1, max: 100, default: 20 },
-  { key: 'rows', label: 'Rows', min: 1, max: 100, default: 15 },
-  { key: 'cellSize', label: 'Cell size (px)', min: 10, max: 200, default: 40 }
+  { key: "cols", label: "Columns", min: 1, max: 100, default: 20 },
+  { key: "rows", label: "Rows", min: 1, max: 100, default: 15 },
+  { key: "cellSize", label: "Cell size (px)", min: 10, max: 200, default: 40 },
 ];
 
-/** Clamp `val` to an integer in [min, max], falling back to `fallback` if not a number. */
+/** Fields inside `token`. */
+export const TOKEN_FIELDS = [
+  { key: "name", kind: "text", label: "Name", maxLength: 40, default: "Token" },
+  {
+    key: "color",
+    kind: "color",
+    label: "Color",
+    maxLength: 7,
+    default: "#e63946",
+  },
+  { key: "col", kind: "int", label: "Column", min: 0, max: 99, default: 0 },
+  { key: "row", kind: "int", label: "Row", min: 0, max: 99, default: 0 },
+  {
+    key: "owner",
+    kind: "text",
+    label: "Owner username",
+    maxLength: 40,
+    default: null,
+  },
+];
+
+/**
+ * Clamp `val` to an integer in [min, max], falling back to `fallback` if not a
+ * number.
+ */
 export function clampInt(val, min, max, fallback) {
   const n = parseInt(val, 10);
   if (Number.isNaN(n)) return fallback;
@@ -74,11 +112,17 @@ export function defaultCharacter() {
  * only touches the fields it sends.
  */
 export function sanitizeCharacter(input, existing) {
-  const c = existing ? { ...existing, hp: { ...existing.hp }, abilityScores: { ...existing.abilityScores } } : defaultCharacter();
+  const c = existing
+    ? {
+        ...existing,
+        hp: { ...existing.hp },
+        abilityScores: { ...existing.abilityScores },
+      }
+    : defaultCharacter();
 
   for (const field of CHARACTER_FIELDS) {
     if (input[field.key] === undefined) continue;
-    if (field.kind === 'int') {
+    if (field.kind === "int") {
       c[field.key] = clampInt(input[field.key], field.min, field.max, c[field.key]);
     } else {
       const str = String(input[field.key]).trim().slice(0, field.maxLength);
@@ -124,9 +168,12 @@ export function sanitizeGrid(input, existing) {
   return g;
 }
 
-/** A brand-new Token with schema defaults (before placement/ownership are known). */
+/**
+ * A brand-new Token with schema defaults (before placement/ownership are
+ * known).
+ */
 export function defaultToken() {
-  return { name: 'Token', color: '#e63946', col: 0, row: 0, owner: null };
+  return { name: "Token", color: "#e63946", col: 0, row: 0, owner: null };
 }
 
 /**
@@ -135,11 +182,16 @@ export function defaultToken() {
  * token id generation since it must be unique across the whole board).
  */
 export function sanitizeToken(input, grid) {
-  return {
-    name: (input.name || 'Token').toString().slice(0, 40),
-    color: input.color || '#e63946',
-    col: clampInt(input.col, 0, grid.cols - 1, 0),
-    row: clampInt(input.row, 0, grid.rows - 1, 0),
-    owner: input.owner ? String(input.owner).trim() : null
-  };
+  const t = defaultToken();
+  for (const field of TOKEN_FIELDS) {
+    if (input[field.key] === undefined) continue;
+    if (field.kind === "int") {
+      t[field.key] = clampInt(input[field.key], field.min, field.max, t[field.key]);
+    } else if (field.kind === "color") {
+      t[field.key] = input[field.key] || field.default;
+    } else {
+      t[field.key] = String(input[field.key]).trim().slice(0, field.maxLength) || field.default;
+    }
+  }
+  return t;
 }

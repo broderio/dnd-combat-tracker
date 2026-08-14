@@ -1,7 +1,7 @@
 // server/socketHandlers/tokenHandlers.js
-import { EVENTS } from '../../shared/protocol.js';
-import { addToken, removeToken, moveToken, getToken, getState } from '../gameState.js';
-import { canManageBoard, canMoveToken } from '../policy.js';
+import { EVENTS } from "../../shared/protocol.js";
+import { addToken, getState, getToken, moveToken, removeToken } from "../gameState.js";
+import { canManageBoard, canMoveToken } from "../policy.js";
 
 export function registerTokenHandlers(io, socket, session) {
   socket.on(EVENTS.ADD_TOKEN, (token) => {

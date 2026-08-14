@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes how the codebase is organized and *why*. It's aimed at
+This document describes how the codebase is organized and _why_. It's aimed at
 someone with a strong backend/Python background but limited front-end experience,
 so it spells out browser-specific idioms that a JS-focused doc would take for granted.
 
@@ -11,12 +11,12 @@ so it spells out browser-specific idioms that a JS-focused doc would take for gr
 
 There is exactly **one place** each "concept" is defined:
 
-| Concept | Defined once in |
-|---|---|
-| What fields a Character/Token/Grid has, and how to validate them | `shared/schema.js` |
+| Concept                                                          | Defined once in      |
+| ---------------------------------------------------------------- | -------------------- |
+| What fields a Character/Token/Grid has, and how to validate them | `shared/schema.js`   |
 | What socket events exist and what payload shape each one carries | `shared/protocol.js` |
-| Who is allowed to do what (move this token, edit that character) | `server/policy.js` |
-| How data is read/written to disk | `server/db.js` |
+| Who is allowed to do what (move this token, edit that character) | `server/policy.js`   |
+| How data is read/written to disk                                 | `server/db.js`       |
 
 Both the server (via `require()`, since Node uses CommonJS) and the browser client
 (via native ES modules, `<script type="module">` + `import`) load `shared/schema.js`
@@ -31,12 +31,13 @@ natively — no transpiler needed.
 ### Why not a frontend framework or bundler?
 
 Considered and rejected for this project:
+
 - **React/Vue etc.**: would genuinely help with the "state → DOM" sync problem the
   client has, but it's a new mental model on top of an already-unfamiliar area
   (front-end), plus a build step. Not worth it for ~600 lines split across a
   handful of focused modules.
 - **Webpack/Vite/esbuild**: their main value here would be `import` support in
-  *older* browsers and bundling for production performance. This app is loaded by
+  _older_ browsers and bundling for production performance. This app is loaded by
   a handful of people on a LAN/tunnel, not the public internet, so load
   performance is irrelevant, and all modern browsers (2021+) support native ES
   modules directly. So: no build step needed.
@@ -89,6 +90,7 @@ dnd-tracker/
 ```
 
 ### Note on `db.js` at the root
+
 `db.js` currently sits at the repo root and is `require()`'d by `server.js`. The
 refactor moves its logic into `server/db.js` (co-located with the other server
 modules). I'll delete the root `db.js` and update the one `require('./db')` in
@@ -148,14 +150,19 @@ since nothing outside `server.js` imports it directly.
   switching etc.), and starts the socket connection.
 
 ### Browser module note
+
 `public/index.html`'s closing script tag changes from:
+
 ```html
 <script src="client.js"></script>
 ```
+
 to:
+
 ```html
 <script type="module" src="js/main.js"></script>
 ```
+
 `type="module"` is what tells the browser "this file (and anything it `import`s)
 uses ES module syntax" — it also automatically defers execution until the DOM is
 parsed and only ever executes a given module file once no matter how many times
@@ -164,20 +171,20 @@ polluting the global scope; ES modules are private by default.
 
 ## Socket event → payload shapes (moved from tribal knowledge into `shared/protocol.js`)
 
-| Event | Direction | Payload |
-|---|---|---|
-| `join` | client→server | `{ mode: 'dm'\|'player', name, characterId? }` |
-| `joined` | server→client | `{ mode, name }` |
-| `state` | server→client | full board state `{ background, grid, tokens }` |
-| `presence` | server→client | `{ message }` |
-| `your-character` | server→client (to one socket) | `Character` |
-| `all-characters` | server→client (to DM sockets) | `[{ username, character }]` |
-| `players-online` | server→client (broadcast) | `[{ username, characterName }]` |
-| `set-grid` | client(DM)→server | `Grid` |
-| `add-token` | client(DM)→server | `{ name, color, owner, col, row }` |
-| `remove-token` | client(DM)→server | `tokenId` |
-| `move-token` | client→server | `{ id, col, row }` |
-| `token-moved` | server→client (broadcast) | `{ id, col, row }` |
+| Event            | Direction                     | Payload                                         |
+| ---------------- | ----------------------------- | ----------------------------------------------- |
+| `join`           | client→server                 | `{ mode: 'dm'\|'player', name, characterId? }`  |
+| `joined`         | server→client                 | `{ mode, name }`                                |
+| `state`          | server→client                 | full board state `{ background, grid, tokens }` |
+| `presence`       | server→client                 | `{ message }`                                   |
+| `your-character` | server→client (to one socket) | `Character`                                     |
+| `all-characters` | server→client (to DM sockets) | `[{ username, character }]`                     |
+| `players-online` | server→client (broadcast)     | `[{ username, characterName }]`                 |
+| `set-grid`       | client(DM)→server             | `Grid`                                          |
+| `add-token`      | client(DM)→server             | `{ name, color, owner, col, row }`              |
+| `remove-token`   | client(DM)→server             | `tokenId`                                       |
+| `move-token`     | client→server                 | `{ id, col, row }`                              |
+| `token-moved`    | server→client (broadcast)     | `{ id, col, row }`                              |
 
 This table becomes the source of truth in `shared/protocol.js` (as JSDoc comments
 next to each constant), replacing the current situation where you'd have to grep
@@ -186,6 +193,7 @@ both `server.js` and `client.js` to reconstruct it.
 ## Verification plan (after each stage)
 
 Manual smoke test (same as README's "Trying it out" section), run after every stage:
+
 1. `npm start`, open as DM in one tab, player in another.
 2. DM: upload background, set grid, add a token.
 3. Player: log in (new + existing username/PIN), create a character, join table.

@@ -4,12 +4,12 @@
 // socket gets its own `session` object (mode/name/characterId), shared by
 // reference across the handler modules registered below.
 
-import { registerJoinHandler } from './joinHandler.js';
-import { registerGridHandler } from './gridHandler.js';
-import { registerTokenHandlers } from './tokenHandlers.js';
+import { registerGridHandler } from "./gridHandler.js";
+import { registerJoinHandler } from "./joinHandler.js";
+import { registerTokenHandlers } from "./tokenHandlers.js";
 
 export function registerSocketHandlers(io) {
-  io.on('connection', (socket) => {
+  io.on("connection", (socket) => {
     const session = { mode: null, name: null, characterId: null };
 
     registerJoinHandler(io, socket, session);

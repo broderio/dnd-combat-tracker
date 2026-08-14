@@ -4,17 +4,18 @@
 // requirements: usernames must be unique, PIN is just a shared-secret
 // convenience, not real security.
 
-import { Router } from 'express';
-import { loadDB, saveDB } from '../db.js';
+import { Router } from "express";
+
+import { loadDB, saveDB } from "../db.js";
 
 const router = Router();
 
-router.post('/login', (req, res) => {
-  const username = String(req.body.username || '').trim();
-  const pin = String(req.body.pin || '').trim();
+router.post("/login", (req, res) => {
+  const username = String(req.body.username || "").trim();
+  const pin = String(req.body.pin || "").trim();
 
-  if (!username) return res.status(400).json({ ok: false, error: 'Username is required.' });
-  if (!pin) return res.status(400).json({ ok: false, error: 'PIN is required.' });
+  if (!username) return res.status(400).json({ ok: false, error: "Username is required." });
+  if (!pin) return res.status(400).json({ ok: false, error: "PIN is required." });
 
   const db = loadDB();
   const key = username.toLowerCase();
@@ -28,10 +29,15 @@ router.post('/login', (req, res) => {
   }
 
   if (user.pin !== pin) {
-    return res.status(401).json({ ok: false, error: 'Incorrect PIN for that username.' });
+    return res.status(401).json({ ok: false, error: "Incorrect PIN for that username." });
   }
 
-  res.json({ ok: true, isNewUser: false, username: user.username, characters: user.characters });
+  res.json({
+    ok: true,
+    isNewUser: false,
+    username: user.username,
+    characters: user.characters,
+  });
 });
 
 export default router;

@@ -9,12 +9,11 @@
 // like `{ mode: 'dm'|'player', name, characterId }`.
 
 export function isDM(session) {
-  return session.mode === 'dm';
+  return session.mode === "dm";
 }
 
 export function isOwnerOfToken(session, token) {
-  return session.mode === 'player' && !!token.owner &&
-    token.owner.toLowerCase() === session.name.toLowerCase();
+  return session.mode === "player" && !!token.owner && token.owner.toLowerCase() === session.name.toLowerCase();
 }
 
 /** DM can move any token; a player can only move a token they own. */
@@ -22,7 +21,10 @@ export function canMoveToken(session, token) {
   return isDM(session) || isOwnerOfToken(session, token);
 }
 
-/** Board-management actions (grid config, add/remove token, background upload) are DM-only. */
+/**
+ * Board-management actions (grid config, add/remove token, background upload)
+ * are DM-only.
+ */
 export function canManageBoard(session) {
   return isDM(session);
 }

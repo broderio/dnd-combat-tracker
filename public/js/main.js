@@ -9,54 +9,53 @@
 // DM panel vs. player board-hint, the role badge, and the presence log —
 // things that aren't really part of any single panel below.
 
-import { EVENTS } from '/shared/protocol.js';
-import { onEvent } from './socketClient.js';
-import {
-  setBoard, setActiveCharacter, setDmRoster, setOnlinePlayers, board
-} from './state.js';
+import "./views/joinView.js";
+import "./views/characterSelectView.js";
+import "./views/characterModalView.js";
 
-import './views/joinView.js';
-import './views/characterSelectView.js';
-import './views/characterModalView.js';
-import { renderOwnCharacterView, renderDMRoster } from './views/characterSheetView.js';
-import { render as renderBoard, positionToken } from './views/boardView.js';
-import { syncGridFormFromState, renderOwnerDropdown } from './views/dmPanelView.js';
+import { EVENTS } from "/shared/protocol.js";
 
-const joinScreen = document.getElementById('join-screen');
-const characterSelectScreen = document.getElementById('character-select-screen');
-const gameScreen = document.getElementById('game-screen');
+import { onEvent } from "./socketClient.js";
+import { board, setActiveCharacter, setBoard, setDmRoster, setOnlinePlayers } from "./state.js";
+import { positionToken, render as renderBoard } from "./views/boardView.js";
+import { renderDMRoster, renderOwnCharacterView } from "./views/characterSheetView.js";
+import { renderOwnerDropdown, syncGridFormFromState } from "./views/dmPanelView.js";
 
-const roleBadge = document.getElementById('role-badge');
-const presenceLog = document.getElementById('presence-log');
-const dmPanel = document.getElementById('dm-panel');
-const boardHint = document.getElementById('board-hint');
-const charSidebarTitle = document.getElementById('char-sidebar-title');
-const ownCharacterView = document.getElementById('own-character-view');
-const allCharactersView = document.getElementById('all-characters-view');
+const joinScreen = document.getElementById("join-screen");
+const characterSelectScreen = document.getElementById("character-select-screen");
+const gameScreen = document.getElementById("game-screen");
 
-onEvent('disconnect', () => {
-  presenceLog.textContent = 'Connection lost — attempting to reconnect…';
+const roleBadge = document.getElementById("role-badge");
+const presenceLog = document.getElementById("presence-log");
+const dmPanel = document.getElementById("dm-panel");
+const boardHint = document.getElementById("board-hint");
+const charSidebarTitle = document.getElementById("char-sidebar-title");
+const ownCharacterView = document.getElementById("own-character-view");
+const allCharactersView = document.getElementById("all-characters-view");
+
+onEvent("disconnect", () => {
+  presenceLog.textContent = "Connection lost — attempting to reconnect…";
 });
 
 onEvent(EVENTS.JOINED, ({ mode, name }) => {
-  presenceLog.textContent = 'Connected.';
-  joinScreen.classList.add('hidden');
-  characterSelectScreen.classList.add('hidden');
-  gameScreen.classList.remove('hidden');
-  roleBadge.textContent = mode === 'dm' ? `DM · ${name}` : `Player · ${name}`;
+  presenceLog.textContent = "Connected.";
+  joinScreen.classList.add("hidden");
+  characterSelectScreen.classList.add("hidden");
+  gameScreen.classList.remove("hidden");
+  roleBadge.textContent = mode === "dm" ? `DM · ${name}` : `Player · ${name}`;
 
-  if (mode === 'dm') {
-    dmPanel.classList.remove('hidden');
-    boardHint.classList.add('hidden');
-    charSidebarTitle.textContent = 'All Characters';
-    ownCharacterView.classList.add('hidden');
-    allCharactersView.classList.remove('hidden');
+  if (mode === "dm") {
+    dmPanel.classList.remove("hidden");
+    boardHint.classList.add("hidden");
+    charSidebarTitle.textContent = "All Characters";
+    ownCharacterView.classList.add("hidden");
+    allCharactersView.classList.remove("hidden");
   } else {
-    dmPanel.classList.add('hidden');
-    boardHint.classList.remove('hidden');
-    charSidebarTitle.textContent = 'Character Sheet';
-    ownCharacterView.classList.remove('hidden');
-    allCharactersView.classList.add('hidden');
+    dmPanel.classList.add("hidden");
+    boardHint.classList.remove("hidden");
+    charSidebarTitle.textContent = "Character Sheet";
+    ownCharacterView.classList.remove("hidden");
+    allCharactersView.classList.add("hidden");
     renderOwnCharacterView();
   }
 });

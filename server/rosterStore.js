@@ -5,7 +5,7 @@
 // handlers need to read/mutate this and trigger the two broadcasts below, so
 // it lives in its own module rather than as a variable server.js used to own.
 
-import { EVENTS } from '../shared/protocol.js';
+import { EVENTS } from "../shared/protocol.js";
 
 /** @type {Map<string, { username: string, character: object|null }>} */
 const activePlayers = new Map();
@@ -30,7 +30,11 @@ export function getActivePlayers() {
 export function updateActiveCharacterIfMatches(username, characterId, character) {
   const updatedSocketIds = [];
   for (const [socketId, entry] of activePlayers.entries()) {
-    if (entry.username.toLowerCase() === username.toLowerCase() && entry.character && entry.character.id === characterId) {
+    if (
+      entry.username.toLowerCase() === username.toLowerCase() &&
+      entry.character &&
+      entry.character.id === characterId
+    ) {
       entry.character = character;
       updatedSocketIds.push(socketId);
     }
@@ -38,12 +42,13 @@ export function updateActiveCharacterIfMatches(username, characterId, character)
   return updatedSocketIds;
 }
 
-// Public-safe list: username + character name only. No stats. Sent to everyone (used for the
-// token-owner dropdown, which any DM can open, and is harmless for players to see too).
+// Public-safe list: username + character name only. No stats. Sent to everyone
+// (used for the token-owner dropdown, which any DM can open, and is harmless
+// for players to see too).
 export function broadcastOnlinePlayers(io) {
   const list = Array.from(activePlayers.values()).map((entry) => ({
     username: entry.username,
-    characterName: entry.character ? entry.character.name : null
+    characterName: entry.character ? entry.character.name : null,
   }));
   io.emit(EVENTS.PLAYERS_ONLINE, list);
 }
@@ -55,7 +60,7 @@ export function pushAllCharactersToDMs(io) {
     .map((entry) => ({ username: entry.username, character: entry.character }));
 
   for (const [, s] of io.sockets.sockets) {
-    if (s.data.session && s.data.session.mode === 'dm') {
+    if (s.data.session && s.data.session.mode === "dm") {
       s.emit(EVENTS.ALL_CHARACTERS, list);
     }
   }

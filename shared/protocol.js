@@ -42,18 +42,18 @@
 
 export const EVENTS = {
   // client -> server
-  JOIN: 'join',
-  SET_GRID: 'set-grid',
-  ADD_TOKEN: 'add-token',
-  REMOVE_TOKEN: 'remove-token',
-  MOVE_TOKEN: 'move-token',
+  JOIN: "join",
+  SET_GRID: "set-grid",
+  ADD_TOKEN: "add-token",
+  REMOVE_TOKEN: "remove-token",
+  MOVE_TOKEN: "move-token",
 
   // server -> client
-  JOINED: 'joined',
-  STATE: 'state',
-  PRESENCE: 'presence',
-  YOUR_CHARACTER: 'your-character',
-  ALL_CHARACTERS: 'all-characters',
-  PLAYERS_ONLINE: 'players-online',
-  TOKEN_MOVED: 'token-moved'
+  JOINED: "joined",
+  STATE: "state",
+  PRESENCE: "presence",
+  YOUR_CHARACTER: "your-character",
+  ALL_CHARACTERS: "all-characters",
+  PLAYERS_ONLINE: "players-online",
+  TOKEN_MOVED: "token-moved",
 };
