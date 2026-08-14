@@ -1,6 +1,6 @@
 // server/socketHandlers/tokenHandlers.js
 import { EVENTS } from "../../shared/protocol.js";
-import { addToken, getState, getToken, moveToken, removeToken } from "../gameState.js";
+import { addToken, getState, getToken, moveToken, removeToken, updateToken } from "../gameState.js";
 import { canManageBoard, canMoveToken } from "../policy.js";
 
 export function registerTokenHandlers(io, socket, session) {
@@ -22,6 +22,15 @@ export function registerTokenHandlers(io, socket, session) {
     if (!canMoveToken(session, token)) return; // players may only move their own token
 
     const moved = moveToken(id, col, row);
-    io.emit(EVENTS.TOKEN_MOVED, { id, col: moved.col, row: moved.row });
+    io.emit(EVENTS.TOKEN_MOVED, { id, col: moved.col, row: moved.row, overlayEffects: moved.overlayEffects });
+  });
+
+  // DM-only: edit a token's HP and/or status effects from the DM panel.
+  socket.on(EVENTS.UPDATE_TOKEN, ({ id, hp, statusEffects }) => {
+    if (!canManageBoard(session)) return;
+    const updated = updateToken(id, { hp, statusEffects });
+    if (!updated) return;
+    io.emit(EVENTS.STATE, getState());
   });
 }
+

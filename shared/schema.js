@@ -46,13 +46,13 @@ export const CHARACTER_FIELDS = [
   {
     key: "tokenColor",
     kind: "color",
-    label: "Color",
+    label: "Token Color",
     maxLength: 7,
     default: "#e63946",
   },
 ];
 
-/** Fields inside `character.hp`, each an int clamped to [min, max]. */
+/** Fields inside `character.hp` / `token.hp`, each an int clamped to [min, max]. */
 export const HP_FIELDS = [
   { key: "current", label: "HP (current)", min: -9999, max: 9999, default: 10 },
   { key: "max", label: "HP (max)", min: 0, max: 9999, default: 10 },
@@ -84,6 +84,56 @@ export const TOKEN_FIELDS = [
     maxLength: 40,
     default: null,
   },
+];
+
+/**
+ * The fixed vocabulary of status-effect tags the DM can toggle on a token
+ * (standard 5e condition names). Kept as a flat list rather than free text so
+ * the DM panel can render it as checkboxes and the board can render short
+ * badges without guessing at arbitrary strings.
+ */
+export const STATUS_EFFECTS = [
+  "blinded",
+  "charmed",
+  "deafened",
+  "frightened",
+  "grappled",
+  "incapacitated",
+  "invisible",
+  "paralyzed",
+  "petrified",
+  "poisoned",
+  "prone",
+  "restrained",
+  "stunned",
+  "unconscious",
+];
+
+/**
+ * Area-of-effect overlay types. `effectTag` is the status-effect-like tag
+ * automatically applied (as `token.overlayEffects`, kept separate from the
+ * DM's manually-set `token.statusEffects`) to any token whose cell falls
+ * inside an overlay of this type — see server/gameState.js's
+ * `recomputeOverlayEffects`. `generic` has no automatic effect, useful for
+ * marking an area (e.g. difficult terrain) without implying a condition.
+ */
+export const OVERLAY_TYPES = {
+  fire: { label: "Fire", color: "#e0703f", effectTag: "burning" },
+  water: { label: "Water", color: "#3f7fe0", effectTag: "soaked" },
+  electric: { label: "Electricity", color: "#e0d63f", effectTag: "shocked" },
+  poison: { label: "Poison", color: "#5c7a4f", effectTag: "poisoned" },
+  generic: { label: "Generic", color: "#9c9c9c", effectTag: null },
+};
+
+/** Shapes supported for an overlay, centered on `col`/`row`. */
+export const OVERLAY_SHAPES = ["circle", "square"];
+
+/** Fields inside `overlay`. */
+export const OVERLAY_FIELDS = [
+  { key: "col", kind: "int", label: "Column", min: 0, max: 99, default: 0 },
+  { key: "row", kind: "int", label: "Row", min: 0, max: 99, default: 0 },
+  { key: "radius", kind: "int", label: "Radius (cells)", min: 1, max: 30, default: 2 },
+  { key: "label", kind: "text", label: "Label", maxLength: 40, default: "" },
 ];
 
 /**
@@ -130,13 +180,7 @@ export function sanitizeCharacter(input, existing) {
     }
   }
 
-  if (input.hp) {
-    for (const field of HP_FIELDS) {
-      if (input.hp[field.key] !== undefined) {
-        c.hp[field.key] = clampInt(input.hp[field.key], field.min, field.max, c.hp[field.key]);
-      }
-    }
-  }
+  if (input.hp) sanitizeHp(input.hp, c.hp);
 
   if (input.abilityScores) {
     for (const key of ABILITY_KEYS) {
@@ -147,6 +191,28 @@ export function sanitizeCharacter(input, existing) {
   }
 
   return c;
+}
+
+/**
+ * Validates a partial `{ current, max }` HP payload in place against
+ * `target` (an existing `hp` object), clamping each provided field per
+ * HP_FIELDS. Shared by `sanitizeCharacter` and `sanitizeToken` so both
+ * domain objects' HP behaves identically.
+ */
+function sanitizeHp(input, target) {
+  for (const field of HP_FIELDS) {
+    if (input[field.key] !== undefined) {
+      target[field.key] = clampInt(input[field.key], field.min, field.max, target[field.key]);
+    }
+  }
+  return target;
+}
+
+/** A brand-new `{ current, max }` HP object at schema defaults. */
+function defaultHp() {
+  const hp = {};
+  for (const field of HP_FIELDS) hp[field.key] = field.default;
+  return hp;
 }
 
 /** Board grid defaults. */
@@ -170,19 +236,27 @@ export function sanitizeGrid(input, existing) {
 
 /**
  * A brand-new Token with schema defaults (before placement/ownership are
- * known).
+ * known). `hp`/`statusEffects` default to a healthy, unaffected token;
+ * `overlayEffects` is server-computed (see gameState.recomputeOverlayEffects)
+ * and never set directly from client input.
  */
 export function defaultToken() {
-  return { name: "Token", color: "#e63946", col: 0, row: 0, owner: null };
+  const t = { hp: defaultHp(), statusEffects: [], overlayEffects: [] };
+  for (const field of TOKEN_FIELDS) t[field.key] = field.default;
+  return t;
 }
 
 /**
- * Validate a new Token payload. `grid` is the current board grid, used to
- * clamp `col`/`row` into bounds. `id` is assigned by the caller (server owns
- * token id generation since it must be unique across the whole board).
+ * Validate a Token payload. `grid` is the current board grid, used to clamp
+ * `col`/`row` into bounds. `existing` is the current token when this is a
+ * partial update (e.g. the DM editing just HP/status effects) — every field
+ * is independently optional in `input`, mirroring `sanitizeCharacter`. `id`
+ * and `overlayEffects` are assigned/computed by the caller, never from
+ * `input`.
  */
-export function sanitizeToken(input, grid) {
-  const t = defaultToken();
+export function sanitizeToken(input, grid, existing) {
+  const t = existing ? { ...existing, hp: { ...existing.hp } } : defaultToken();
+
   for (const field of TOKEN_FIELDS) {
     if (input[field.key] === undefined) continue;
     if (field.kind === "int") {
@@ -193,5 +267,76 @@ export function sanitizeToken(input, grid) {
       t[field.key] = String(input[field.key]).trim().slice(0, field.maxLength) || field.default;
     }
   }
+
+  if (grid) {
+    t.col = clampInt(t.col, 0, Math.max(0, grid.cols - 1), t.col);
+    t.row = clampInt(t.row, 0, Math.max(0, grid.rows - 1), t.row);
+  }
+
+  if (input.hp) sanitizeHp(input.hp, t.hp);
+
+  if (input.statusEffects !== undefined) {
+    const list = Array.isArray(input.statusEffects) ? input.statusEffects : [];
+    t.statusEffects = list.filter((tag) => STATUS_EFFECTS.includes(tag)).slice(0, STATUS_EFFECTS.length);
+  }
+
   return t;
+}
+
+/** A brand-new AoE overlay at schema defaults. */
+export function defaultOverlay() {
+  const o = { type: "generic", shape: "circle" };
+  for (const field of OVERLAY_FIELDS) o[field.key] = field.default;
+  return o;
+}
+
+/**
+ * Validate a new Overlay payload. `grid` clamps `col`/`row` into bounds, same
+ * as `sanitizeToken`. Overlays are always created fresh (no partial-update
+ * use case in this app), so there's no `existing` parameter.
+ */
+export function sanitizeOverlay(input, grid) {
+  const o = defaultOverlay();
+  if (OVERLAY_TYPES[input.type]) o.type = input.type;
+  if (OVERLAY_SHAPES.includes(input.shape)) o.shape = input.shape;
+
+  for (const field of OVERLAY_FIELDS) {
+    if (input[field.key] === undefined) continue;
+    if (field.kind === "int") {
+      o[field.key] = clampInt(input[field.key], field.min, field.max, o[field.key]);
+    } else {
+      o[field.key] = String(input[field.key]).trim().slice(0, field.maxLength);
+    }
+  }
+
+  if (grid) {
+    o.col = clampInt(o.col, 0, Math.max(0, grid.cols - 1), o.col);
+    o.row = clampInt(o.row, 0, Math.max(0, grid.rows - 1), o.row);
+  }
+
+  return o;
+}
+
+/** Turn-order tracker defaults: nobody in the initiative order yet. */
+export function defaultTurnOrder() {
+  return { combatants: [], currentIndex: -1, round: 0 };
+}
+
+/**
+ * Validate a full replacement of the initiative order. `entries` is
+ * `[{ tokenId, initiative }, ...]`; only entries referencing a token that
+ * still exists on `tokens` are kept, sorted by initiative descending (ties
+ * keep their given order, i.e. a stable sort). Resets `currentIndex`/`round`
+ * since the order itself just changed.
+ */
+export function sanitizeTurnOrder(entries, tokens) {
+  const list = Array.isArray(entries) ? entries : [];
+  const combatants = list
+    .filter((e) => e && tokens[e.tokenId])
+    .map((e) => ({ tokenId: e.tokenId, initiative: clampInt(e.initiative, -99, 99, 0) }))
+    .map((e, i) => ({ ...e, _i: i }))
+    .sort((a, b) => b.initiative - a.initiative || a._i - b._i)
+    .map(({ tokenId, initiative }) => ({ tokenId, initiative }));
+
+  return { combatants, currentIndex: combatants.length ? 0 : -1, round: combatants.length ? 1 : 0 };
 }

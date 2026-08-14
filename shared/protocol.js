@@ -30,6 +30,24 @@
  * @property {string} id
  * @property {number} col
  * @property {number} row
+ * @property {string[]} overlayEffects - recomputed for the moved token, since
+ *   moving can enter/leave an AoE overlay
+ *
+ * @typedef {Object} UpdateTokenPayload - DM-only partial token edit
+ * @property {string} id
+ * @property {{current?: number, max?: number}} [hp]
+ * @property {string[]} [statusEffects]
+ *
+ * @typedef {Object} AddOverlayPayload
+ * @property {keyof import('./schema.js').OVERLAY_TYPES} type
+ * @property {'circle'|'square'} shape
+ * @property {number} col
+ * @property {number} row
+ * @property {number} radius
+ * @property {string} [label]
+ *
+ * @typedef {Object} SetTurnOrderPayload
+ * @property {{tokenId: string, initiative: number}[]} combatants
  *
  * @typedef {Object} OnlinePlayerSummary
  * @property {string} username
@@ -47,6 +65,11 @@ export const EVENTS = {
   ADD_TOKEN: "add-token",
   REMOVE_TOKEN: "remove-token",
   MOVE_TOKEN: "move-token",
+  UPDATE_TOKEN: "update-token",
+  ADD_OVERLAY: "add-overlay",
+  REMOVE_OVERLAY: "remove-overlay",
+  SET_TURN_ORDER: "set-turn-order",
+  NEXT_TURN: "next-turn",
 
   // server -> client
   JOINED: "joined",

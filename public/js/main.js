@@ -12,14 +12,18 @@
 import "./views/joinView.js";
 import "./views/characterSelectView.js";
 import "./views/characterModalView.js";
+import "./views/measureToolView.js";
 
 import { EVENTS } from "/shared/protocol.js";
 
 import { onEvent } from "./socketClient.js";
 import { board, setActiveCharacter, setBoard, setDmRoster, setOnlinePlayers } from "./state.js";
-import { positionToken, render as renderBoard } from "./views/boardView.js";
+import { positionToken, refreshTokenVisual, render as renderBoard } from "./views/boardView.js";
 import { renderDMRoster, renderOwnCharacterView } from "./views/characterSheetView.js";
 import { renderOwnerDropdown, syncGridFormFromState } from "./views/dmPanelView.js";
+import { renderOverlayList } from "./views/overlayPanelView.js";
+import { renderInitiativeList, renderTurnBanner } from "./views/turnTrackerView.js";
+
 
 const joinScreen = document.getElementById("join-screen");
 const characterSelectScreen = document.getElementById("character-select-screen");
@@ -84,11 +88,16 @@ onEvent(EVENTS.STATE, (newState) => {
   setBoard(newState);
   renderBoard();
   syncGridFormFromState();
+  renderOverlayList();
+  renderInitiativeList();
+  renderTurnBanner();
 });
 
-onEvent(EVENTS.TOKEN_MOVED, ({ id, col, row }) => {
+onEvent(EVENTS.TOKEN_MOVED, ({ id, col, row, overlayEffects }) => {
   if (!board.tokens[id]) return;
   board.tokens[id].col = col;
   board.tokens[id].row = row;
+  if (overlayEffects) board.tokens[id].overlayEffects = overlayEffects;
   positionToken(id);
+  refreshTokenVisual(id);
 });

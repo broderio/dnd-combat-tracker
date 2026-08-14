@@ -618,7 +618,9 @@ body {
 
 #background-layer,
 #grid-layer,
-#token-layer {
+#overlay-layer,
+#token-layer,
+#measure-layer {
   position: absolute;
   top: 0;
   left: 0;
@@ -626,12 +628,35 @@ body {
   height: 100%;
 }
 
-#grid-layer {
+#grid-layer,
+#overlay-layer,
+#measure-layer {
   pointer-events: none;
 }
 #grid-layer line {
   stroke: rgba(236, 226, 200, 0.35);
   stroke-width: 1;
+}
+
+.overlay-shape {
+  position: absolute;
+  opacity: 0.32;
+  border: 2px solid;
+}
+
+.measure-line {
+  stroke: var(--ember-bright);
+  stroke-width: 3;
+  stroke-dasharray: 6 4;
+}
+.measure-label {
+  fill: var(--parchment);
+  font-size: 13px;
+  font-family: inherit;
+  text-anchor: middle;
+  paint-order: stroke;
+  stroke: var(--wood);
+  stroke-width: 4px;
 }
 
 .token {
@@ -666,8 +691,170 @@ body {
   z-index: 50;
 }
 
+.token.bloodied {
+  box-shadow: 0 0 10px 4px rgba(220, 40, 40, 0.85);
+}
+.token.has-effect {
+  box-shadow: 0 0 8px 3px rgba(230, 200, 60, 0.75);
+}
+.token.bloodied.has-effect {
+  box-shadow:
+    0 0 10px 4px rgba(220, 40, 40, 0.85),
+    0 0 4px 8px rgba(230, 200, 60, 0.45);
+}
+.token.active-turn {
+  outline: 3px solid #ffe08a;
+  outline-offset: 2px;
+}
+
+#board-toolbar {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+#board-toolbar button {
+  width: auto;
+  padding: 6px 12px;
+}
+#measure-tool-btn.active {
+  border-color: var(--ember);
+  color: var(--ember-bright);
+}
+
 #board-hint {
   margin-top: 10px;
   font-size: 0.85rem;
   color: var(--parchment-dim);
+}
+
+#turn-banner {
+  color: #ffe08a;
+  border-color: #ffe08a;
+}
+
+/* ---------- Token editor (DM panel) ---------- */
+.token-list-item {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--line);
+  padding: 6px 0;
+}
+.token-list-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.token-editor {
+  margin: 8px 0 4px 20px;
+  padding: 10px;
+  background: var(--wood-light);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.token-editor-hp {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 0.82rem;
+  color: var(--parchment-dim);
+}
+.token-editor-hp input {
+  width: 60px;
+  padding: 4px;
+  background: var(--wood);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--parchment);
+}
+.status-effect-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 10px;
+  margin-bottom: 10px;
+  font-size: 0.78rem;
+  color: var(--parchment-dim);
+}
+.status-effect-option {
+  display: flex !important;
+  align-items: center;
+  gap: 4px;
+  margin: 0 !important;
+}
+.status-effect-option input {
+  width: auto;
+  margin: 0;
+}
+.token-editor-character {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 0.82rem;
+}
+
+/* ---------- Turn order + overlay panels (DM panel) ---------- */
+.initiative-list,
+#overlay-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  font-size: 0.82rem;
+}
+.initiative-list li,
+#overlay-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--line);
+}
+.initiative-list input {
+  width: 56px;
+  padding: 4px;
+  background: var(--wood);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--parchment);
+}
+#overlay-list button {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ember-bright);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 2px 6px;
+}
+
+.turn-controls {
+  display: flex;
+  gap: 8px;
+}
+.turn-controls button {
+  width: auto;
+  flex: 1;
+}
+
+.overlay-controls label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--parchment-dim);
+  margin-bottom: 10px;
+}
+.overlay-controls select,
+.overlay-controls input {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 7px;
+  background: var(--wood);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  color: var(--parchment);
+  font-family: inherit;
+}
+#place-overlay-btn.active {
+  border-color: var(--ember);
+  color: var(--ember-bright);
 }

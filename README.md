@@ -121,3 +121,15 @@ More permanent, but requires router access:
   still open, the client now automatically re-sends its join info the moment
   Socket.IO reconnects — that's what restores them on the DM's roster and re-enables
   their token moves without needing a manual page refresh.
+
+
+## TODO
+1. If a player moves their token into a space containing another token, it should snap to the nearest unoccupied cell instead of overlapping. (Currently, tokens can overlap.)
+2. Enhance the token state to include metadata such as max HP, current HP, and status effects.
+3. Add the ability for the DM to edit the state of any token (e.g., HP, status effects) from the DM panel. 
+4. Link character stats to tokens so that when a token is selected, the DM can see and edit its associated character's stats.
+5. Add an indicator that shows when a token is "bloodied" or near death, based on its current HP relative to max HP. This should appear as a red glow or similar visual cue on the token.
+6. Implement area-of-effect overlays (fire, water, electricity, etc.) that can be applied to the grid and affect tokens within the area.
+7. Implement persistent save/load of the board state (background, grid, tokens) so that the game can be resumed after a server restart or at a later time.
+8. Add tools for measuring distances on the grid, such as a ruler or line/radius tool, to help with spell ranges and movement.
+9. Implement a turn order tracker that allows the DM to manage initiative and display the current turn to all players.

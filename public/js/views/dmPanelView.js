@@ -10,6 +10,8 @@ import { uploadBackground } from "../api.js";
 import { emitEvent } from "../socketClient.js";
 import { board, dmRoster, onlinePlayers, session } from "../state.js";
 
+import { buildTokenListItem } from "./tokenEditorView.js";
+
 const uploadForm = document.getElementById("upload-form");
 const backgroundInput = document.getElementById("background-input");
 const gridCols = document.getElementById("grid-cols");
@@ -37,26 +39,12 @@ export function syncGridFormFromState() {
   gridVisible.checked = board.grid.visible;
 }
 
-/** The DM's token list (with Remove buttons) — a no-op for players. */
+/** The DM's token list (with per-token edit/remove controls) — a no-op for players. */
 export function renderTokenList() {
   if (session.mode !== "dm") return;
   tokenList.innerHTML = "";
   Object.values(board.tokens).forEach((token) => {
-    const li = document.createElement("li");
-    const swatch = document.createElement("span");
-    swatch.className = "swatch";
-    swatch.style.background = token.color;
-
-    const meta = document.createElement("span");
-    meta.className = "tok-meta";
-    meta.textContent = `${token.name} — ${token.owner || "DM-controlled"}`;
-
-    const removeBtn = document.createElement("button");
-    removeBtn.textContent = "Remove";
-    removeBtn.addEventListener("click", () => emitEvent(EVENTS.REMOVE_TOKEN, token.id));
-
-    li.append(swatch, meta, removeBtn);
-    tokenList.appendChild(li);
+    tokenList.appendChild(buildTokenListItem(token));
   });
 }
 

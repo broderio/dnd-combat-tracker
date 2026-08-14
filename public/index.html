@@ -141,6 +141,7 @@
       <header id="topbar">
         <div class="brand">Combat Tracker</div>
         <div id="role-badge" class="badge">—</div>
+        <div id="turn-banner" class="badge hidden"></div>
         <div id="presence-log"></div>
       </header>
 
@@ -178,15 +179,48 @@
             <button id="generate-player-tokens-btn" class="secondary-btn">Generate Player Tokens</button>
           </div>
           <ul id="token-list"></ul>
+
+          <h2>Turn Order</h2>
+          <ul id="initiative-list" class="initiative-list"></ul>
+          <div class="turn-controls">
+            <button id="set-turn-order-btn" class="secondary-btn">Set Turn Order</button>
+            <button id="next-turn-btn" class="secondary-btn">Next Turn</button>
+          </div>
+
+          <h2>Area Overlays</h2>
+          <div class="overlay-controls">
+            <label
+              >Type
+              <select id="overlay-type"></select>
+            </label>
+            <label
+              >Shape
+              <select id="overlay-shape">
+                <option value="circle">Circle</option>
+                <option value="square">Square</option>
+              </select>
+            </label>
+            <label>Radius (cells) <input id="overlay-radius" type="number" min="1" max="30" value="2" /></label>
+            <label>Label (optional) <input id="overlay-label" type="text" maxlength="40" placeholder="e.g. Fireball" /></label>
+            <button id="place-overlay-btn" class="secondary-btn">Place on Grid</button>
+          </div>
+          <ul id="overlay-list"></ul>
         </aside>
 
         <main id="board-wrap">
+          <div id="board-toolbar">
+            <button id="measure-tool-btn" class="secondary-btn">📏 Measure</button>
+          </div>
           <div id="board">
             <div id="background-layer"></div>
             <svg id="grid-layer" xmlns="http://www.w3.org/2000/svg"></svg>
+            <div id="overlay-layer"></div>
             <div id="token-layer"></div>
+            <svg id="measure-layer" xmlns="http://www.w3.org/2000/svg"></svg>
           </div>
-          <p id="board-hint" class="hidden">Drag your token to move it. It will snap to the nearest grid cell.</p>
+          <p id="board-hint" class="hidden">
+            Drag your token to move it. It will snap to the nearest unoccupied cell if the destination is taken.
+          </p>
         </main>
 
         <!-- Character sheet sidebar: players see only their own; DM sees everyone online -->

@@ -6,7 +6,9 @@
 
 import { registerGridHandler } from "./gridHandler.js";
 import { registerJoinHandler } from "./joinHandler.js";
+import { registerOverlayHandlers } from "./overlayHandlers.js";
 import { registerTokenHandlers } from "./tokenHandlers.js";
+import { registerTurnHandlers } from "./turnHandlers.js";
 
 export function registerSocketHandlers(io) {
   io.on("connection", (socket) => {
@@ -15,5 +17,7 @@ export function registerSocketHandlers(io) {
     registerJoinHandler(io, socket, session);
     registerGridHandler(io, socket, session);
     registerTokenHandlers(io, socket, session);
+    registerOverlayHandlers(io, socket, session);
+    registerTurnHandlers(io, socket, session);
   });
 }

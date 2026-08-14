@@ -26,6 +26,23 @@ export function saveDB(db) {
   fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
 }
 
+/**
+ * The persisted board snapshot (background/grid/tokens/overlays/turnOrder +
+ * id counters), or `null` if nothing has been saved yet (fresh install).
+ * `server/gameState.js` is the only caller — it owns the in-memory shape and
+ * just needs somewhere to load from / save to.
+ */
+export function loadBoardState() {
+  const db = loadDB();
+  return db.board || null;
+}
+
+export function saveBoardState(boardSnapshot) {
+  const db = loadDB();
+  db.board = boardSnapshot;
+  saveDB(db);
+}
+
 let nextCharId = Date.now();
 function generateCharId() {
   return "char_" + nextCharId++;

@@ -21,13 +21,24 @@ const cfSaveBtn = document.getElementById("cf-save-btn");
 //   'create-and-play' -> join the table as the newly-created character
 //   'edit-in-list'     -> just refresh the character-select list
 //   'edit-in-game'     -> refresh the in-game sidebar's own-character view
+//   'edit-as-dm'       -> DM editing a linked player's character from the
+//                         token editor; the DM roster refresh happens
+//                         automatically via the server's ALL_CHARACTERS
+//                         broadcast, so there's nothing extra to do locally
 let editingContext = null;
 let editingCharacterId = null;
+let editingUsername = null; // whose character this is (usually currentUsername, but not for 'edit-as-dm')
 
-/** Opens the modal. Pass `character: null` to create a new one. */
-export function openCharacterModal(character, context) {
+/**
+ * Opens the modal. Pass `character: null` to create a new one. `ownerUsername`
+ * defaults to the logged-in user (`currentUsername`) — pass it explicitly
+ * when the DM is editing a different player's character (context
+ * 'edit-as-dm'), since the DM's own username isn't the character's owner.
+ */
+export function openCharacterModal(character, context, ownerUsername) {
   editingContext = context;
   editingCharacterId = character ? character.id : null;
+  editingUsername = ownerUsername || currentUsername;
   characterModalTitle.textContent = character ? `Edit ${character.name}` : "New Character";
 
   const c = character || defaultCharacter();
@@ -78,15 +89,15 @@ cfSaveBtn.addEventListener("click", async () => {
 
   try {
     const data = editingCharacterId
-      ? await updateCharacter(currentUsername, editingCharacterId, payload)
-      : await createCharacter(currentUsername, payload);
+      ? await updateCharacter(editingUsername, editingCharacterId, payload)
+      : await createCharacter(editingUsername, payload);
 
     if (!data.ok) {
       alert(data.error || "Could not save character.");
       return;
     }
 
-    setCurrentCharacters(data.characters);
+    if (editingUsername === currentUsername) setCurrentCharacters(data.characters);
     characterModal.classList.add("hidden");
 
     if (editingContext === "create-and-play") {
@@ -97,6 +108,8 @@ cfSaveBtn.addEventListener("click", async () => {
       setActiveCharacter(data.character);
       renderOwnCharacterView();
     }
+    // 'edit-as-dm': nothing else to do — the server's ALL_CHARACTERS broadcast
+    // (triggered by the PUT request above) refreshes the DM roster for us.
   } catch (err) {
     alert("Could not reach the server.");
   }
