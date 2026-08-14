@@ -6,9 +6,9 @@
 
 import { EVENTS } from "/shared/protocol.js";
 
-import { uploadBackground } from "../api.js";
-import { emitEvent } from "../socketClient.js";
-import { board, dmRoster, onlinePlayers, session } from "../state.js";
+import { ApiClient } from "../api.js";
+import { socketClient } from "../socketClient.js";
+import { clientState } from "../state.js";
 
 import { buildTokenListItem } from "./tokenEditorView.js";
 
@@ -33,17 +33,17 @@ const tokenList = document.getElementById("token-list");
  */
 export function syncGridFormFromState() {
   if (document.activeElement && ["grid-cols", "grid-rows", "grid-cellsize"].includes(document.activeElement.id)) return;
-  gridCols.value = board.grid.cols;
-  gridRows.value = board.grid.rows;
-  gridCellSize.value = board.grid.cellSize;
-  gridVisible.checked = board.grid.visible;
+  gridCols.value = clientState.board.grid.cols;
+  gridRows.value = clientState.board.grid.rows;
+  gridCellSize.value = clientState.board.grid.cellSize;
+  gridVisible.checked = clientState.board.grid.visible;
 }
 
 /** The DM's token list (with per-token edit/remove controls) — a no-op for players. */
 export function renderTokenList() {
-  if (session.mode !== "dm") return;
+  if (clientState.session.mode !== "dm") return;
   tokenList.innerHTML = "";
-  Object.values(board.tokens).forEach((token) => {
+  Object.values(clientState.board.tokens).forEach((token) => {
     tokenList.appendChild(buildTokenListItem(token));
   });
 }
@@ -55,7 +55,7 @@ export function renderTokenList() {
 export function renderOwnerDropdown() {
   const currentValue = tokenOwner.value;
   tokenOwner.innerHTML = '<option value="">None (DM-controlled)</option>';
-  onlinePlayers.forEach((p) => {
+  clientState.onlinePlayers.forEach((p) => {
     const opt = document.createElement("option");
     opt.value = p.username;
     opt.textContent = p.characterName ? `${p.username} — ${p.characterName}` : p.username;
@@ -70,11 +70,11 @@ export function renderOwnerDropdown() {
 uploadForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   if (!backgroundInput.files[0]) return;
-  await uploadBackground(backgroundInput.files[0]);
+  await ApiClient.uploadBackground(backgroundInput.files[0]);
 });
 
 applyGridBtn.addEventListener("click", () => {
-  emitEvent(EVENTS.SET_GRID, {
+  socketClient.emitEvent(EVENTS.SET_GRID, {
     cols: gridCols.value,
     rows: gridRows.value,
     cellSize: gridCellSize.value,
@@ -88,12 +88,12 @@ addTokenBtn.addEventListener("click", () => {
     alert("Give the token a name.");
     return;
   }
-  emitEvent(EVENTS.ADD_TOKEN, {
+  socketClient.emitEvent(EVENTS.ADD_TOKEN, {
     name,
     color: tokenColor.value,
     owner: tokenOwner.value || null,
-    col: Math.floor(board.grid.cols / 2),
-    row: Math.floor(board.grid.rows / 2),
+    col: Math.floor(clientState.board.grid.cols / 2),
+    row: Math.floor(clientState.board.grid.rows / 2),
   });
   tokenName.value = "";
   tokenOwner.value = "";
@@ -102,20 +102,20 @@ addTokenBtn.addEventListener("click", () => {
 generatePlayerTokensBtn.addEventListener("click", () => {
   // Generate a token for each online player who doesn't already have one. Use
   // the tokenColor from their character in the roster.
-  onlinePlayers.forEach((p) => {
+  clientState.onlinePlayers.forEach((p) => {
     if (!p.characterName) return; // skip players without a character
-    const alreadyHasToken = Object.values(board.tokens).some((t) => t.owner === p.username);
+    const alreadyHasToken = Object.values(clientState.board.tokens).some((t) => t.owner === p.username);
     if (alreadyHasToken) return;
 
-    const rosterEntry = dmRoster.find((r) => r.username === p.username);
+    const rosterEntry = clientState.dmRoster.find((r) => r.username === p.username);
     const color = rosterEntry ? rosterEntry.character.tokenColor : "#e63946";
 
-    emitEvent(EVENTS.ADD_TOKEN, {
+    socketClient.emitEvent(EVENTS.ADD_TOKEN, {
       name: p.characterName,
       color,
       owner: p.username,
-      col: Math.floor(board.grid.cols / 2),
-      row: Math.floor(board.grid.rows / 2),
+      col: Math.floor(clientState.board.grid.cols / 2),
+      row: Math.floor(clientState.board.grid.rows / 2),
     });
   });
 });

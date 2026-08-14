@@ -2,22 +2,32 @@
 //
 // Single place that wires up `io.on('connection', ...)`. Each connected
 // socket gets its own `session` object (mode/name/characterId), shared by
-// reference across the handler modules registered below.
+// reference across the handler instances constructed below.
 
-import { registerGridHandler } from "./gridHandler.js";
-import { registerJoinHandler } from "./joinHandler.js";
-import { registerOverlayHandlers } from "./overlayHandlers.js";
-import { registerTokenHandlers } from "./tokenHandlers.js";
-import { registerTurnHandlers } from "./turnHandlers.js";
+import { db } from "../db.js";
+import { gameState } from "../gameState.js";
+import { rosterStore } from "../rosterStore.js";
 
+import { GridHandler } from "./gridHandler.js";
+import { JoinHandler } from "./joinHandler.js";
+import { OverlayHandlers } from "./overlayHandlers.js";
+import { TokenHandlers } from "./tokenHandlers.js";
+import { TurnHandlers } from "./turnHandlers.js";
+
+/**
+ * Wires up `io.on('connection', ...)`, instantiating one of each handler
+ * class per connected socket (each instance encapsulates that socket's
+ * `io`/`socket`/`session` plus the shared `gameState`/`rosterStore`
+ * singletons it needs).
+ */
 export function registerSocketHandlers(io) {
   io.on("connection", (socket) => {
     const session = { mode: null, name: null, characterId: null };
 
-    registerJoinHandler(io, socket, session);
-    registerGridHandler(io, socket, session);
-    registerTokenHandlers(io, socket, session);
-    registerOverlayHandlers(io, socket, session);
-    registerTurnHandlers(io, socket, session);
+    new JoinHandler(io, socket, session, db, gameState, rosterStore).register();
+    new GridHandler(io, socket, session, gameState).register();
+    new TokenHandlers(io, socket, session, gameState).register();
+    new OverlayHandlers(io, socket, session, gameState).register();
+    new TurnHandlers(io, socket, session, gameState).register();
   });
 }

@@ -1,10 +1,13 @@
 // public/js/views/joinView.js
 //
-// Step 1: mode tabs (Player / DM) and the login / DM-name form.
+// Step 1: mode tabs (Player / DM) and the login / DM-name form. No local
+// state of its own beyond the DOM (everything it needs lives in
+// `clientState`), so this stays a plain set of DOM-wiring functions rather
+// than a class.
 
-import { login } from "../api.js";
-import { joinTable } from "../socketClient.js";
-import { setCurrentCharacters, setCurrentUsername, setSession } from "../state.js";
+import { ApiClient } from "../api.js";
+import { socketClient } from "../socketClient.js";
+import { clientState } from "../state.js";
 
 import { showCharacterSelectScreen } from "./characterSelectView.js";
 
@@ -39,15 +42,15 @@ document.getElementById("join-player-btn").addEventListener("click", async () =>
   }
 
   try {
-    const data = await login(username, pin);
+    const data = await ApiClient.login(username, pin);
     if (!data.ok) {
       playerLoginError.textContent = data.error || "Login failed.";
       playerLoginError.classList.remove("hidden");
       return;
     }
 
-    setCurrentUsername(data.username);
-    setCurrentCharacters(data.characters);
+    clientState.setCurrentUsername(data.username);
+    clientState.setCurrentCharacters(data.characters);
     showCharacterSelectScreen();
   } catch (err) {
     playerLoginError.textContent = "Could not reach the server. Is it running?";
@@ -57,6 +60,7 @@ document.getElementById("join-player-btn").addEventListener("click", async () =>
 
 document.getElementById("join-dm-btn").addEventListener("click", () => {
   const name = document.getElementById("dm-name").value.trim() || "DM";
-  setSession("dm", name);
-  joinTable({ mode: "dm", name });
+  clientState.setSession("dm", name);
+  socketClient.joinTable({ mode: "dm", name });
 });
+

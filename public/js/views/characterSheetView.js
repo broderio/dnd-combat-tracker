@@ -6,7 +6,7 @@
 
 import { ABILITY_KEYS } from "/shared/schema.js";
 
-import { activeCharacter, dmRoster } from "../state.js";
+import { clientState } from "../state.js";
 
 import { openCharacterModal } from "./characterModalView.js";
 
@@ -84,20 +84,20 @@ function buildCharacterCard(character, { showEditButton }) {
 
 export function renderOwnCharacterView() {
   ownCharacterView.innerHTML = "";
-  if (!activeCharacter) return;
-  ownCharacterView.appendChild(buildCharacterCard(activeCharacter, { showEditButton: true }));
+  if (!clientState.activeCharacter) return;
+  ownCharacterView.appendChild(buildCharacterCard(clientState.activeCharacter, { showEditButton: true }));
 }
 
 export function renderDMRoster() {
   allCharactersView.innerHTML = "";
-  if (dmRoster.length === 0) {
+  if (clientState.dmRoster.length === 0) {
     const empty = document.createElement("p");
     empty.className = "dm-roster-empty";
     empty.textContent = "No players online yet.";
     allCharactersView.appendChild(empty);
     return;
   }
-  dmRoster.forEach(({ username, character }) => {
+  clientState.dmRoster.forEach(({ username, character }) => {
     const label = document.createElement("div");
     label.className = "char-sheet-meta";
     label.style.marginBottom = "4px";

@@ -138,205 +138,379 @@ export const OVERLAY_FIELDS = [
 
 /**
  * Clamp `val` to an integer in [min, max], falling back to `fallback` if not a
- * number.
+ * number. Grouped as a `static` method on a class purely so this module
+ * reads consistently with the rest of shared/schema.js (all classes now) —
+ * there's no instance state to justify here, this is a pure function.
  */
-export function clampInt(val, min, max, fallback) {
-  const n = parseInt(val, 10);
-  if (Number.isNaN(n)) return fallback;
-  return Math.max(min, Math.min(max, n));
+export class Validators {
+  static clampInt(val, min, max, fallback) {
+    const n = parseInt(val, 10);
+    if (Number.isNaN(n)) return fallback;
+    return Math.max(min, Math.min(max, n));
+  }
 }
 
-/** A brand-new Character with every field at its schema default. */
-export function defaultCharacter() {
-  const c = { id: null, hp: {}, abilityScores: {} };
-  for (const field of CHARACTER_FIELDS) c[field.key] = field.default;
-  for (const field of HP_FIELDS) c.hp[field.key] = field.default;
-  for (const key of ABILITY_KEYS) c.abilityScores[key] = 10;
-  return c;
-}
-
-/**
- * Merge + validate a partial Character payload (e.g. from a POST/PUT body)
- * against `existing` (or schema defaults, if this is a new character).
- * Every field is independently optional in `input`, so a partial-update PUT
- * only touches the fields it sends.
- */
-export function sanitizeCharacter(input, existing) {
-  const c = existing
-    ? {
-        ...existing,
-        hp: { ...existing.hp },
-        abilityScores: { ...existing.abilityScores },
-      }
-    : defaultCharacter();
-
-  for (const field of CHARACTER_FIELDS) {
-    if (input[field.key] === undefined) continue;
-    if (field.kind === "int") {
-      c[field.key] = clampInt(input[field.key], field.min, field.max, c[field.key]);
-    } else {
-      const str = String(input[field.key]).trim().slice(0, field.maxLength);
-      c[field.key] = str || (field.emptyFallback !== undefined ? field.emptyFallback : str);
-    }
+/** Hit points, as a small value object shared by both Character and Token. */
+export class HitPoints {
+  constructor(current, max) {
+    this.current = current;
+    this.max = max;
   }
 
-  if (input.hp) sanitizeHp(input.hp, c.hp);
+  /** A brand-new `{ current, max }` at schema defaults. */
+  static default() {
+    const defaults = {};
+    for (const field of HP_FIELDS) defaults[field.key] = field.default;
+    return new HitPoints(defaults.current, defaults.max);
+  }
 
-  if (input.abilityScores) {
-    for (const key of ABILITY_KEYS) {
-      if (input.abilityScores[key] !== undefined) {
-        c.abilityScores[key] = clampInt(input.abilityScores[key], 1, 30, c.abilityScores[key]);
+  static clone(existing) {
+    return new HitPoints(existing.current, existing.max);
+  }
+
+  /**
+   * Validates a partial `{ current, max }` payload against `existing` (or
+   * schema defaults), clamping each provided field per HP_FIELDS. Shared by
+   * `Character.fromInput` and `Token.fromInput` so both domain objects' HP
+   * behaves identically.
+   */
+  static fromInput(input, existing) {
+    const hp = existing ? HitPoints.clone(existing) : HitPoints.default();
+    for (const field of HP_FIELDS) {
+      if (input[field.key] !== undefined) {
+        hp[field.key] = Validators.clampInt(input[field.key], field.min, field.max, hp[field.key]);
       }
     }
+    return hp;
   }
 
-  return c;
+  /** True if at or below half max HP (the standard "bloodied" threshold). */
+  isBloodied() {
+    return this.max > 0 && this.current / this.max <= 0.5;
+  }
+
+  toJSON() {
+    return { current: this.current, max: this.max };
+  }
+}
+
+/** A player character: stats, HP, ability scores. */
+export class Character {
+  constructor() {
+    this.id = null;
+    this.hp = HitPoints.default();
+    this.abilityScores = {};
+    for (const key of ABILITY_KEYS) this.abilityScores[key] = 10;
+    for (const field of CHARACTER_FIELDS) this[field.key] = field.default;
+  }
+
+  /** A brand-new Character with every field at its schema default. */
+  static default() {
+    return new Character();
+  }
+
+  static clone(existing) {
+    const c = Object.assign(new Character(), existing);
+    c.hp = HitPoints.clone(existing.hp);
+    c.abilityScores = { ...existing.abilityScores };
+    return c;
+  }
+
+  /**
+   * Merge + validate a partial Character payload (e.g. from a POST/PUT body)
+   * against `existing` (or schema defaults, if this is a new character).
+   * Every field is independently optional in `input`, so a partial-update PUT
+   * only touches the fields it sends.
+   */
+  static fromInput(input, existing) {
+    const c = existing ? Character.clone(existing) : new Character();
+
+    for (const field of CHARACTER_FIELDS) {
+      if (input[field.key] === undefined) continue;
+      if (field.kind === "int") {
+        c[field.key] = Validators.clampInt(input[field.key], field.min, field.max, c[field.key]);
+      } else {
+        const str = String(input[field.key]).trim().slice(0, field.maxLength);
+        c[field.key] = str || (field.emptyFallback !== undefined ? field.emptyFallback : str);
+      }
+    }
+
+    if (input.hp) c.hp = HitPoints.fromInput(input.hp, c.hp);
+
+    if (input.abilityScores) {
+      for (const key of ABILITY_KEYS) {
+        if (input.abilityScores[key] !== undefined) {
+          c.abilityScores[key] = Validators.clampInt(input.abilityScores[key], 1, 30, c.abilityScores[key]);
+        }
+      }
+    }
+
+    return c;
+  }
+
+  toJSON() {
+    const out = { id: this.id, hp: this.hp.toJSON(), abilityScores: { ...this.abilityScores } };
+    for (const field of CHARACTER_FIELDS) out[field.key] = this[field.key];
+    return out;
+  }
+}
+
+/** The board's grid configuration. */
+export class Grid {
+  constructor() {
+    this.visible = true;
+    for (const field of GRID_FIELDS) this[field.key] = field.default;
+  }
+
+  /** Board grid defaults. */
+  static default() {
+    return new Grid();
+  }
+
+  /** Validate a partial Grid payload against the existing grid. */
+  static fromInput(input, existing) {
+    const g = Object.assign(new Grid(), existing);
+    for (const field of GRID_FIELDS) {
+      if (input[field.key] !== undefined) {
+        g[field.key] = Validators.clampInt(input[field.key], field.min, field.max, g[field.key]);
+      }
+    }
+    if (input.visible !== undefined) g.visible = !!input.visible;
+    return g;
+  }
+
+  toJSON() {
+    const out = { visible: this.visible };
+    for (const field of GRID_FIELDS) out[field.key] = this[field.key];
+    return out;
+  }
 }
 
 /**
- * Validates a partial `{ current, max }` HP payload in place against
- * `target` (an existing `hp` object), clamping each provided field per
- * HP_FIELDS. Shared by `sanitizeCharacter` and `sanitizeToken` so both
- * domain objects' HP behaves identically.
+ * A token on the board. `hp`/`statusEffects` default to a healthy,
+ * unaffected token; `overlayEffects` is computed by `recomputeOverlayEffects`
+ * (see GameStateStore) and never set directly from client input.
  */
-function sanitizeHp(input, target) {
-  for (const field of HP_FIELDS) {
-    if (input[field.key] !== undefined) {
-      target[field.key] = clampInt(input[field.key], field.min, field.max, target[field.key]);
+export class Token {
+  constructor() {
+    this.id = null;
+    this.hp = HitPoints.default();
+    this.statusEffects = [];
+    this.overlayEffects = [];
+    for (const field of TOKEN_FIELDS) this[field.key] = field.default;
+  }
+
+  static default() {
+    return new Token();
+  }
+
+  static clone(existing) {
+    const t = Object.assign(new Token(), existing);
+    t.hp = HitPoints.clone(existing.hp);
+    t.statusEffects = [...existing.statusEffects];
+    t.overlayEffects = [...existing.overlayEffects];
+    return t;
+  }
+
+  /**
+   * Validate a Token payload. `grid` is the current board grid, used to clamp
+   * `col`/`row` into bounds. `existing` is the current token when this is a
+   * partial update (e.g. the DM editing just HP/status effects) — every
+   * field is independently optional in `input`, mirroring
+   * `Character.fromInput`. `id` and `overlayEffects` are assigned/computed by
+   * the caller (GameStateStore), never from `input`.
+   */
+  static fromInput(input, grid, existing) {
+    const t = existing ? Token.clone(existing) : new Token();
+
+    for (const field of TOKEN_FIELDS) {
+      if (input[field.key] === undefined) continue;
+      if (field.kind === "int") {
+        t[field.key] = Validators.clampInt(input[field.key], field.min, field.max, t[field.key]);
+      } else if (field.kind === "color") {
+        t[field.key] = input[field.key] || field.default;
+      } else {
+        t[field.key] = String(input[field.key]).trim().slice(0, field.maxLength) || field.default;
+      }
+    }
+
+    if (grid) {
+      t.col = Validators.clampInt(t.col, 0, Math.max(0, grid.cols - 1), t.col);
+      t.row = Validators.clampInt(t.row, 0, Math.max(0, grid.rows - 1), t.row);
+    }
+
+    if (input.hp) t.hp = HitPoints.fromInput(input.hp, t.hp);
+
+    if (input.statusEffects !== undefined) {
+      const list = Array.isArray(input.statusEffects) ? input.statusEffects : [];
+      t.statusEffects = list.filter((tag) => STATUS_EFFECTS.includes(tag)).slice(0, STATUS_EFFECTS.length);
+    }
+
+    return t;
+  }
+
+  /** True if this token is at or below half its max HP. */
+  isBloodied() {
+    return this.hp.isBloodied();
+  }
+
+  /** True if this token's cell falls inside `overlay`'s area. */
+  isInsideOverlay(overlay) {
+    const dc = this.col - overlay.col;
+    const dr = this.row - overlay.row;
+    if (overlay.shape === "square") {
+      return Math.abs(dc) <= overlay.radius && Math.abs(dr) <= overlay.radius;
+    }
+    return dc * dc + dr * dr <= overlay.radius * overlay.radius; // circle
+  }
+
+  /**
+   * Recomputes `overlayEffects` (the automatic, overlay-derived status tags)
+   * from the given list of overlays. Kept entirely separate from
+   * `statusEffects` (the DM's manual edits) so the two never clobber each
+   * other.
+   */
+  recomputeOverlayEffects(overlays) {
+    const tags = new Set();
+    for (const overlay of overlays) {
+      if (this.isInsideOverlay(overlay)) {
+        const effectTag = OVERLAY_TYPES[overlay.type]?.effectTag;
+        if (effectTag) tags.add(effectTag);
+      }
+    }
+    this.overlayEffects = Array.from(tags);
+  }
+
+  toJSON() {
+    const out = {
+      id: this.id,
+      hp: this.hp.toJSON(),
+      statusEffects: [...this.statusEffects],
+      overlayEffects: [...this.overlayEffects],
+    };
+    for (const field of TOKEN_FIELDS) out[field.key] = this[field.key];
+    return out;
+  }
+}
+
+/** An area-of-effect overlay (fire, water, electricity, etc.) placed on the grid. */
+export class Overlay {
+  constructor() {
+    this.id = null;
+    this.type = "generic";
+    this.shape = "circle";
+    for (const field of OVERLAY_FIELDS) this[field.key] = field.default;
+  }
+
+  static default() {
+    return new Overlay();
+  }
+
+  /**
+   * Validate a new Overlay payload. `grid` clamps `col`/`row` into bounds,
+   * same as `Token.fromInput`. Overlays are always created fresh (no
+   * partial-update use case in this app), so there's no `existing` parameter.
+   */
+  static fromInput(input, grid) {
+    const o = new Overlay();
+    if (OVERLAY_TYPES[input.type]) o.type = input.type;
+    if (OVERLAY_SHAPES.includes(input.shape)) o.shape = input.shape;
+
+    for (const field of OVERLAY_FIELDS) {
+      if (input[field.key] === undefined) continue;
+      if (field.kind === "int") {
+        o[field.key] = Validators.clampInt(input[field.key], field.min, field.max, o[field.key]);
+      } else {
+        o[field.key] = String(input[field.key]).trim().slice(0, field.maxLength);
+      }
+    }
+
+    if (grid) {
+      o.col = Validators.clampInt(o.col, 0, Math.max(0, grid.cols - 1), o.col);
+      o.row = Validators.clampInt(o.row, 0, Math.max(0, grid.rows - 1), o.row);
+    }
+
+    return o;
+  }
+
+  toJSON() {
+    const out = { id: this.id, type: this.type, shape: this.shape };
+    for (const field of OVERLAY_FIELDS) out[field.key] = this[field.key];
+    return out;
+  }
+}
+
+/** The initiative/turn-order tracker. */
+export class TurnOrder {
+  constructor() {
+    this.combatants = [];
+    this.currentIndex = -1;
+    this.round = 0;
+  }
+
+  /** Turn-order defaults: nobody in the initiative order yet. */
+  static default() {
+    return new TurnOrder();
+  }
+
+  /**
+   * Validate a full replacement of the initiative order. `entries` is
+   * `[{ tokenId, initiative }, ...]`; only entries referencing a token that
+   * still exists on `tokens` are kept, sorted by initiative descending (ties
+   * keep their given order, i.e. a stable sort). Resets `currentIndex`/
+   * `round` since the order itself just changed.
+   */
+  static fromEntries(entries, tokens) {
+    const list = Array.isArray(entries) ? entries : [];
+    const combatants = list
+      .filter((e) => e && tokens[e.tokenId])
+      .map((e) => ({ tokenId: e.tokenId, initiative: Validators.clampInt(e.initiative, -99, 99, 0) }))
+      .map((e, i) => ({ ...e, _i: i }))
+      .sort((a, b) => b.initiative - a.initiative || a._i - b._i)
+      .map(({ tokenId, initiative }) => ({ tokenId, initiative }));
+
+    const order = new TurnOrder();
+    order.combatants = combatants;
+    order.currentIndex = combatants.length ? 0 : -1;
+    order.round = combatants.length ? 1 : 0;
+    return order;
+  }
+
+  /** Advances to the next combatant, wrapping around and incrementing `round`. */
+  advance() {
+    if (this.combatants.length === 0) return;
+    this.currentIndex += 1;
+    if (this.currentIndex >= this.combatants.length) {
+      this.currentIndex = 0;
+      this.round += 1;
     }
   }
-  return target;
-}
 
-/** A brand-new `{ current, max }` HP object at schema defaults. */
-function defaultHp() {
-  const hp = {};
-  for (const field of HP_FIELDS) hp[field.key] = field.default;
-  return hp;
-}
-
-/** Board grid defaults. */
-export function defaultGrid() {
-  const g = { visible: true };
-  for (const field of GRID_FIELDS) g[field.key] = field.default;
-  return g;
-}
-
-/** Validate a partial Grid payload against the existing grid. */
-export function sanitizeGrid(input, existing) {
-  const g = { ...existing };
-  for (const field of GRID_FIELDS) {
-    if (input[field.key] !== undefined) {
-      g[field.key] = clampInt(input[field.key], field.min, field.max, g[field.key]);
-    }
-  }
-  if (input.visible !== undefined) g.visible = !!input.visible;
-  return g;
-}
-
-/**
- * A brand-new Token with schema defaults (before placement/ownership are
- * known). `hp`/`statusEffects` default to a healthy, unaffected token;
- * `overlayEffects` is server-computed (see gameState.recomputeOverlayEffects)
- * and never set directly from client input.
- */
-export function defaultToken() {
-  const t = { hp: defaultHp(), statusEffects: [], overlayEffects: [] };
-  for (const field of TOKEN_FIELDS) t[field.key] = field.default;
-  return t;
-}
-
-/**
- * Validate a Token payload. `grid` is the current board grid, used to clamp
- * `col`/`row` into bounds. `existing` is the current token when this is a
- * partial update (e.g. the DM editing just HP/status effects) — every field
- * is independently optional in `input`, mirroring `sanitizeCharacter`. `id`
- * and `overlayEffects` are assigned/computed by the caller, never from
- * `input`.
- */
-export function sanitizeToken(input, grid, existing) {
-  const t = existing ? { ...existing, hp: { ...existing.hp } } : defaultToken();
-
-  for (const field of TOKEN_FIELDS) {
-    if (input[field.key] === undefined) continue;
-    if (field.kind === "int") {
-      t[field.key] = clampInt(input[field.key], field.min, field.max, t[field.key]);
-    } else if (field.kind === "color") {
-      t[field.key] = input[field.key] || field.default;
-    } else {
-      t[field.key] = String(input[field.key]).trim().slice(0, field.maxLength) || field.default;
+  /** Removes a combatant (e.g. after its token is deleted), fixing up `currentIndex`/`round`. */
+  removeCombatant(tokenId) {
+    const idx = this.combatants.findIndex((c) => c.tokenId === tokenId);
+    if (idx === -1) return;
+    this.combatants.splice(idx, 1);
+    if (this.combatants.length === 0) {
+      this.currentIndex = -1;
+      this.round = 0;
+    } else if (this.currentIndex >= this.combatants.length) {
+      this.currentIndex = 0;
     }
   }
 
-  if (grid) {
-    t.col = clampInt(t.col, 0, Math.max(0, grid.cols - 1), t.col);
-    t.row = clampInt(t.row, 0, Math.max(0, grid.rows - 1), t.row);
+  /** The tokenId whose turn it currently is, or null if there's no active encounter. */
+  currentCombatantTokenId() {
+    if (this.currentIndex < 0) return null;
+    return this.combatants[this.currentIndex]?.tokenId ?? null;
   }
 
-  if (input.hp) sanitizeHp(input.hp, t.hp);
-
-  if (input.statusEffects !== undefined) {
-    const list = Array.isArray(input.statusEffects) ? input.statusEffects : [];
-    t.statusEffects = list.filter((tag) => STATUS_EFFECTS.includes(tag)).slice(0, STATUS_EFFECTS.length);
+  toJSON() {
+    return {
+      combatants: this.combatants.map((c) => ({ ...c })),
+      currentIndex: this.currentIndex,
+      round: this.round,
+    };
   }
-
-  return t;
 }
 
-/** A brand-new AoE overlay at schema defaults. */
-export function defaultOverlay() {
-  const o = { type: "generic", shape: "circle" };
-  for (const field of OVERLAY_FIELDS) o[field.key] = field.default;
-  return o;
-}
-
-/**
- * Validate a new Overlay payload. `grid` clamps `col`/`row` into bounds, same
- * as `sanitizeToken`. Overlays are always created fresh (no partial-update
- * use case in this app), so there's no `existing` parameter.
- */
-export function sanitizeOverlay(input, grid) {
-  const o = defaultOverlay();
-  if (OVERLAY_TYPES[input.type]) o.type = input.type;
-  if (OVERLAY_SHAPES.includes(input.shape)) o.shape = input.shape;
-
-  for (const field of OVERLAY_FIELDS) {
-    if (input[field.key] === undefined) continue;
-    if (field.kind === "int") {
-      o[field.key] = clampInt(input[field.key], field.min, field.max, o[field.key]);
-    } else {
-      o[field.key] = String(input[field.key]).trim().slice(0, field.maxLength);
-    }
-  }
-
-  if (grid) {
-    o.col = clampInt(o.col, 0, Math.max(0, grid.cols - 1), o.col);
-    o.row = clampInt(o.row, 0, Math.max(0, grid.rows - 1), o.row);
-  }
-
-  return o;
-}
-
-/** Turn-order tracker defaults: nobody in the initiative order yet. */
-export function defaultTurnOrder() {
-  return { combatants: [], currentIndex: -1, round: 0 };
-}
-
-/**
- * Validate a full replacement of the initiative order. `entries` is
- * `[{ tokenId, initiative }, ...]`; only entries referencing a token that
- * still exists on `tokens` are kept, sorted by initiative descending (ties
- * keep their given order, i.e. a stable sort). Resets `currentIndex`/`round`
- * since the order itself just changed.
- */
-export function sanitizeTurnOrder(entries, tokens) {
-  const list = Array.isArray(entries) ? entries : [];
-  const combatants = list
-    .filter((e) => e && tokens[e.tokenId])
-    .map((e) => ({ tokenId: e.tokenId, initiative: clampInt(e.initiative, -99, 99, 0) }))
-    .map((e, i) => ({ ...e, _i: i }))
-    .sort((a, b) => b.initiative - a.initiative || a._i - b._i)
-    .map(({ tokenId, initiative }) => ({ tokenId, initiative }));
-
-  return { combatants, currentIndex: combatants.length ? 0 : -1, round: combatants.length ? 1 : 0 };
-}

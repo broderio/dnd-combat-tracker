@@ -3,17 +3,12 @@
 // Step 2 of the join flow (players only): pick a saved character to play, or
 // create a new one. Also owns `joinAsPlayer`, since both this screen's
 // "Play" button and the character modal's "create-and-play" flow need to
-// trigger the same join.
+// trigger the same join. No local state of its own (everything it reads
+// lives in `clientState`), so this stays a plain set of functions rather
+// than a class.
 
-import { joinTable } from "../socketClient.js";
-import {
-  currentCharacters,
-  currentUsername,
-  setActiveCharacter,
-  setCurrentCharacters,
-  setCurrentUsername,
-  setSession,
-} from "../state.js";
+import { socketClient } from "../socketClient.js";
+import { clientState } from "../state.js";
 
 import { openCharacterModal } from "./characterModalView.js";
 
@@ -28,15 +23,15 @@ const logoutBtn = document.getElementById("logout-btn");
 export function showCharacterSelectScreen() {
   joinScreen.classList.add("hidden");
   characterSelectScreen.classList.remove("hidden");
-  csUsername.textContent = currentUsername;
+  csUsername.textContent = clientState.currentUsername;
   renderCharacterSelectList();
 }
 
 export function renderCharacterSelectList() {
   characterSelectList.innerHTML = "";
-  noCharactersMsg.classList.toggle("hidden", currentCharacters.length > 0);
+  noCharactersMsg.classList.toggle("hidden", clientState.currentCharacters.length > 0);
 
-  currentCharacters.forEach((c) => {
+  clientState.currentCharacters.forEach((c) => {
     const li = document.createElement("li");
 
     const info = document.createElement("div");
@@ -71,17 +66,18 @@ export function renderCharacterSelectList() {
 }
 
 export function joinAsPlayer(character) {
-  setActiveCharacter(character);
-  setSession("player", currentUsername);
-  joinTable({ mode: "player", name: currentUsername, characterId: character.id });
+  clientState.setActiveCharacter(character);
+  clientState.setSession("player", clientState.currentUsername);
+  socketClient.joinTable({ mode: "player", name: clientState.currentUsername, characterId: character.id });
 }
 
 createCharacterBtn.addEventListener("click", () => openCharacterModal(null, "create-and-play"));
 
 logoutBtn.addEventListener("click", () => {
-  setCurrentUsername(null);
-  setCurrentCharacters([]);
+  clientState.setCurrentUsername(null);
+  clientState.setCurrentCharacters([]);
   characterSelectScreen.classList.add("hidden");
   joinScreen.classList.remove("hidden");
   document.getElementById("player-pin").value = "";
 });
+

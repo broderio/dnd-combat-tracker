@@ -4,10 +4,13 @@ import path from "path";
 import fs from "fs";
 import { Server } from "socket.io";
 import { fileURLToPath } from "url";
-import authRouter from "./server/routes/auth.js";
-import createCharactersRouter from "./server/routes/characters.js";
-import createBackgroundRouter from "./server/routes/background.js";
+import { AuthController } from "./server/routes/auth.js";
+import { CharactersController } from "./server/routes/characters.js";
+import { BackgroundController } from "./server/routes/background.js";
 import { registerSocketHandlers } from "./server/socketHandlers/index.js";
+import { db } from "./server/db.js";
+import { gameState } from "./server/gameState.js";
+import { rosterStore } from "./server/rosterStore.js";
 
 // ESM has no built-in `__dirname` — this is the standard way to recover it.
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -29,13 +32,14 @@ app.use("/shared", express.static(path.join(__dirname, "shared")));
 app.use(express.json());
 
 // ================= REST API =================
-// Each router is a thin Express Router; the actual logic (persistence,
-// validation, roster broadcasts) lives in server/db.js, shared/schema.js,
-// and server/rosterStore.js. Character and background routes need `io` to
-// push live updates, so they're created via a factory function.
-app.use("/api", authRouter);
-app.use("/api", createCharactersRouter(io));
-app.use(createBackgroundRouter(io, UPLOAD_DIR));
+// Each controller is a small class wrapping an Express Router; the actual
+// domain logic (persistence, validation, roster broadcasts) lives in the
+// `db`/`gameState`/`rosterStore` singletons and shared/schema.js. Character
+// and background controllers need `io` to push live updates, so they're
+// constructed here with their dependencies.
+app.use("/api", new AuthController(db).router);
+app.use("/api", new CharactersController(io, db, rosterStore).router);
+app.use(new BackgroundController(io, gameState, UPLOAD_DIR).router);
 
 // ================= Socket.io realtime layer =================
 registerSocketHandlers(io);

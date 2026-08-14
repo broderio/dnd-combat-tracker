@@ -8,8 +8,8 @@
 
 import { EVENTS } from "/shared/protocol.js";
 
-import { emitEvent } from "../socketClient.js";
-import { board, session } from "../state.js";
+import { socketClient } from "../socketClient.js";
+import { clientState } from "../state.js";
 
 const initiativeList = document.getElementById("initiative-list");
 const setTurnOrderBtn = document.getElementById("set-turn-order-btn");
@@ -18,11 +18,11 @@ const turnBanner = document.getElementById("turn-banner");
 
 /** DM-only: one row per token with an initiative number input, prefilled from the current order (if any). */
 export function renderInitiativeList() {
-  if (session.mode !== "dm") return;
+  if (clientState.session.mode !== "dm") return;
   initiativeList.innerHTML = "";
-  const existingByToken = new Map((board.turnOrder.combatants || []).map((c) => [c.tokenId, c.initiative]));
+  const existingByToken = new Map((clientState.board.turnOrder.combatants || []).map((c) => [c.tokenId, c.initiative]));
 
-  Object.values(board.tokens).forEach((token) => {
+  Object.values(clientState.board.tokens).forEach((token) => {
     const li = document.createElement("li");
 
     const label = document.createElement("span");
@@ -44,21 +44,21 @@ setTurnOrderBtn.addEventListener("click", () => {
     tokenId: input.dataset.tokenId,
     initiative: input.value,
   }));
-  emitEvent(EVENTS.SET_TURN_ORDER, combatants);
+  socketClient.emitEvent(EVENTS.SET_TURN_ORDER, combatants);
 });
 
-nextTurnBtn.addEventListener("click", () => emitEvent(EVENTS.NEXT_TURN));
+nextTurnBtn.addEventListener("click", () => socketClient.emitEvent(EVENTS.NEXT_TURN));
 
 /** The "whose turn is it" banner — rendered for everyone, DM and players alike. */
 export function renderTurnBanner() {
-  const order = board.turnOrder;
+  const order = clientState.board.turnOrder;
   if (!order || !order.combatants.length || order.currentIndex < 0) {
     turnBanner.textContent = "";
     turnBanner.classList.add("hidden");
     return;
   }
   const current = order.combatants[order.currentIndex];
-  const token = board.tokens[current.tokenId];
+  const token = clientState.board.tokens[current.tokenId];
   turnBanner.textContent = `Round ${order.round} — ${token ? token.name : "Unknown"}'s turn`;
   turnBanner.classList.remove("hidden");
 }

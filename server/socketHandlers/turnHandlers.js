@@ -6,19 +6,27 @@
 // renders the same "whose turn is it" banner from that.
 
 import { EVENTS } from "../../shared/protocol.js";
-import { getState, nextTurn, setTurnOrder } from "../gameState.js";
-import { canManageBoard } from "../policy.js";
+import { PermissionPolicy } from "../policy.js";
 
-export function registerTurnHandlers(io, socket, session) {
-  socket.on(EVENTS.SET_TURN_ORDER, (combatants) => {
-    if (!canManageBoard(session)) return;
-    setTurnOrder(combatants);
-    io.emit(EVENTS.STATE, getState());
-  });
+export class TurnHandlers {
+  constructor(io, socket, session, gameStateStore) {
+    this.io = io;
+    this.socket = socket;
+    this.session = session;
+    this.gameState = gameStateStore;
+  }
 
-  socket.on(EVENTS.NEXT_TURN, () => {
-    if (!canManageBoard(session)) return;
-    nextTurn();
-    io.emit(EVENTS.STATE, getState());
-  });
+  register() {
+    this.socket.on(EVENTS.SET_TURN_ORDER, (combatants) => {
+      if (!PermissionPolicy.canManageBoard(this.session)) return;
+      this.gameState.setTurnOrder(combatants);
+      this.io.emit(EVENTS.STATE, this.gameState.getState());
+    });
+
+    this.socket.on(EVENTS.NEXT_TURN, () => {
+      if (!PermissionPolicy.canManageBoard(this.session)) return;
+      this.gameState.nextTurn();
+      this.io.emit(EVENTS.STATE, this.gameState.getState());
+    });
+  }
 }

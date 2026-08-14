@@ -10,8 +10,8 @@
 import { OVERLAY_TYPES } from "/shared/schema.js";
 import { EVENTS } from "/shared/protocol.js";
 
-import { emitEvent } from "../socketClient.js";
-import { board, boardTool, session, setBoardTool } from "../state.js";
+import { socketClient } from "../socketClient.js";
+import { clientState } from "../state.js";
 
 import { cellFromEvent, getBoardElement } from "./boardView.js";
 
@@ -32,12 +32,12 @@ Object.entries(OVERLAY_TYPES).forEach(([key, meta]) => {
 });
 
 placeOverlayBtn.addEventListener("click", () => {
-  const alreadyArmed = boardTool.type === "place-overlay";
+  const alreadyArmed = clientState.boardTool.type === "place-overlay";
   if (alreadyArmed) {
     disarm();
     return;
   }
-  setBoardTool({
+  clientState.setBoardTool({
     type: "place-overlay",
     draft: {
       type: overlayTypeSelect.value,
@@ -51,23 +51,23 @@ placeOverlayBtn.addEventListener("click", () => {
 });
 
 getBoardElement().addEventListener("click", (e) => {
-  if (boardTool.type !== "place-overlay" || session.mode !== "dm") return;
+  if (clientState.boardTool.type !== "place-overlay" || clientState.session.mode !== "dm") return;
   const { col, row } = cellFromEvent(e);
-  emitEvent(EVENTS.ADD_OVERLAY, { ...boardTool.draft, col, row });
+  socketClient.emitEvent(EVENTS.ADD_OVERLAY, { ...clientState.boardTool.draft, col, row });
   disarm();
 });
 
 function disarm() {
-  setBoardTool({ type: "none" });
+  clientState.setBoardTool({ type: "none" });
   placeOverlayBtn.textContent = "Place on Grid";
   placeOverlayBtn.classList.remove("active");
 }
 
 /** The DM's overlay list (with Remove buttons) — a no-op for players. */
 export function renderOverlayList() {
-  if (session.mode !== "dm") return;
+  if (clientState.session.mode !== "dm") return;
   overlayList.innerHTML = "";
-  Object.values(board.overlays).forEach((overlay) => {
+  Object.values(clientState.board.overlays).forEach((overlay) => {
     const meta = OVERLAY_TYPES[overlay.type] || OVERLAY_TYPES.generic;
     const li = document.createElement("li");
 
@@ -81,7 +81,7 @@ export function renderOverlayList() {
 
     const removeBtn = document.createElement("button");
     removeBtn.textContent = "Remove";
-    removeBtn.addEventListener("click", () => emitEvent(EVENTS.REMOVE_OVERLAY, overlay.id));
+    removeBtn.addEventListener("click", () => socketClient.emitEvent(EVENTS.REMOVE_OVERLAY, overlay.id));
 
     li.append(swatch, text, removeBtn);
     overlayList.appendChild(li);

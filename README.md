@@ -124,12 +124,11 @@ More permanent, but requires router access:
 
 
 ## TODO
-1. If a player moves their token into a space containing another token, it should snap to the nearest unoccupied cell instead of overlapping. (Currently, tokens can overlap.)
-2. Enhance the token state to include metadata such as max HP, current HP, and status effects.
-3. Add the ability for the DM to edit the state of any token (e.g., HP, status effects) from the DM panel. 
-4. Link character stats to tokens so that when a token is selected, the DM can see and edit its associated character's stats.
-5. Add an indicator that shows when a token is "bloodied" or near death, based on its current HP relative to max HP. This should appear as a red glow or similar visual cue on the token.
-6. Implement area-of-effect overlays (fire, water, electricity, etc.) that can be applied to the grid and affect tokens within the area.
-7. Implement persistent save/load of the board state (background, grid, tokens) so that the game can be resumed after a server restart or at a later time.
-8. Add tools for measuring distances on the grid, such as a ruler or line/radius tool, to help with spell ranges and movement.
-9. Implement a turn order tracker that allows the DM to manage initiative and display the current turn to all players.
+1. Select from a dropdown of already uploaded backgrounds.
+2. Create a section in the database called "saved_boards" and add a UI section that allows the DM to save the current state as a board, load from a previous save, and delete saves.
+3. Make the sidebars scrollable, the grid map zoomable, and give the page a fixed height.
+4. When the measure tool is selected, the tokens should not be able to be dragged until the measure tool is deselected.
+5. Split the measure tool into two separate tools: one for measuring linear distance and one for mesauring radius.
+6. Display the entire initiative order as a scrollable section at the top of the page, with the current turn highlighted.
+7. Sync the character sheet HP with the token HP. They should initially have the same values and should be updated when the HP is updated from either the player's side in the character sheet, or the DM side in the token.
+8. Create individual indicators for status effects on the tokens. These should be colored with the first letter of the status effect in the center. They should render from the top right to the bottom right of the token.

@@ -1,70 +1,75 @@
 // public/js/state.js
 //
-// Small central store for values shared across view modules. This is NOT a
-// framework store (no subscriptions/reactivity) — just one place that owns
-// these variables so different view modules don't each keep their own,
-// possibly-stale copy.
+// Small central store for values shared across view modules, as a
+// `ClientState` class (see the `clientState` singleton at the bottom) —
+// one place that owns these fields so different view modules don't each
+// keep their own, possibly-stale copy.
 //
-// Browser note on `export let` / `export const { ... }`: ES modules export
-// *live bindings*, not snapshots. That means if this file does
-// `currentUsername = 'bob'` internally (via the setter functions below),
-// every other file that did `import { currentUsername } from './state.js'`
-// automatically sees the new value the next time it reads it — no need to
-// re-import or pass values around by hand. `session` and `board` are plain
-// objects, so their properties can just be mutated directly by anyone who
-// imports them (no setter needed) — see gameShell.js / boardView.js for that.
+// This is NOT a framework store (no subscriptions/reactivity) — view
+// modules read `clientState.session`/`clientState.board`/etc. directly and
+// re-render when a relevant socket event tells them to. `session` and
+// `board` are plain objects, so their nested properties can be mutated
+// directly by anyone holding a reference (see boardView.js) — the setter
+// methods below exist for the fields that get wholesale-replaced.
 
-import { defaultGrid, defaultTurnOrder } from "/shared/schema.js";
+import { Grid, TurnOrder } from "/shared/schema.js";
 
-/** Who *this browser tab* is: `{ mode: 'dm'|'player'|null, name: string|null }`. */
-export const session = { mode: null, name: null };
+export class ClientState {
+  constructor() {
+    /** Who *this browser tab* is: `{ mode: 'dm'|'player'|null, name: string|null }`. */
+    this.session = { mode: null, name: null };
 
-/** The shared board (background image, grid config, tokens, overlays, turn order) mirrored from the server's `state` event. */
-export const board = { background: null, grid: defaultGrid(), tokens: {}, overlays: {}, turnOrder: defaultTurnOrder() };
+    /** The shared board (background image, grid config, tokens, overlays, turn order) mirrored from the server's `state` event. */
+    this.board = { background: null, grid: Grid.default(), tokens: {}, overlays: {}, turnOrder: TurnOrder.default() };
 
-/**
- * What the DM's pointer currently does when it interacts with the board,
- * beyond normal token dragging: `{ type: 'none' }`, `{ type: 'measure' }`, or
- * `{ type: 'place-overlay', draft: {...} }` (draft holds the in-progress
- * overlay's type/shape/radius/label, filled in by overlayPanelView before
- * the DM clicks a cell). boardView.js reads this to decide what a board
- * click/drag means; overlayPanelView.js and measureToolView.js are the only
- * modules that change it.
- */
-export let boardTool = { type: "none" };
+    /**
+     * What the DM's pointer currently does when it interacts with the board,
+     * beyond normal token dragging: `{ type: 'none' }`, `{ type: 'measure' }`,
+     * or `{ type: 'place-overlay', draft: {...} }` (draft holds the
+     * in-progress overlay's type/shape/radius/label, filled in by
+     * OverlayPanelView before the DM clicks a cell). BoardView reads this to
+     * decide what a board click/drag means; OverlayPanelView and
+     * MeasureToolView are the only classes that change it.
+     */
+    this.boardTool = { type: "none" };
 
-export let currentUsername = null; // set after successful login
-export let currentCharacters = []; // this user's saved characters (from login / CRUD responses)
-export let activeCharacter = null; // the character this player picked for this session
-export let onlinePlayers = []; // [{username, characterName}] — public, no stats
-export let dmRoster = []; // [{username, character}] — full stats, DM only
+    this.currentUsername = null; // set after successful login
+    this.currentCharacters = []; // this user's saved characters (from login / CRUD responses)
+    this.activeCharacter = null; // the character this player picked for this session
+    this.onlinePlayers = []; // [{username, characterName}] — public, no stats
+    this.dmRoster = []; // [{username, character}] — full stats, DM only
+  }
 
-export function setBoardTool(tool) {
-  boardTool = tool;
+  setBoardTool(tool) {
+    this.boardTool = tool;
+  }
+
+  setCurrentUsername(username) {
+    this.currentUsername = username;
+  }
+  setCurrentCharacters(characters) {
+    this.currentCharacters = characters;
+  }
+  setActiveCharacter(character) {
+    this.activeCharacter = character;
+  }
+  setOnlinePlayers(list) {
+    this.onlinePlayers = list;
+  }
+  setDmRoster(roster) {
+    this.dmRoster = roster;
+  }
+
+  setSession(mode, name) {
+    this.session.mode = mode;
+    this.session.name = name;
+  }
+
+  /** Replaces the board's contents in place (keeps the same object reference). */
+  setBoard(newBoard) {
+    Object.assign(this.board, newBoard);
+  }
 }
 
-export function setCurrentUsername(username) {
-  currentUsername = username;
-}
-export function setCurrentCharacters(characters) {
-  currentCharacters = characters;
-}
-export function setActiveCharacter(character) {
-  activeCharacter = character;
-}
-export function setOnlinePlayers(list) {
-  onlinePlayers = list;
-}
-export function setDmRoster(roster) {
-  dmRoster = roster;
-}
+export const clientState = new ClientState();
 
-export function setSession(mode, name) {
-  session.mode = mode;
-  session.name = name;
-}
-
-/** Replaces the board's contents in place (keeps the same object reference). */
-export function setBoard(newBoard) {
-  Object.assign(board, newBoard);
-}

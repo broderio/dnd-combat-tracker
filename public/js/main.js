@@ -16,8 +16,8 @@ import "./views/measureToolView.js";
 
 import { EVENTS } from "/shared/protocol.js";
 
-import { onEvent } from "./socketClient.js";
-import { board, setActiveCharacter, setBoard, setDmRoster, setOnlinePlayers } from "./state.js";
+import { socketClient } from "./socketClient.js";
+import { clientState } from "./state.js";
 import { positionToken, refreshTokenVisual, render as renderBoard } from "./views/boardView.js";
 import { renderDMRoster, renderOwnCharacterView } from "./views/characterSheetView.js";
 import { renderOwnerDropdown, syncGridFormFromState } from "./views/dmPanelView.js";
@@ -37,11 +37,11 @@ const charSidebarTitle = document.getElementById("char-sidebar-title");
 const ownCharacterView = document.getElementById("own-character-view");
 const allCharactersView = document.getElementById("all-characters-view");
 
-onEvent("disconnect", () => {
+socketClient.onEvent("disconnect", () => {
   presenceLog.textContent = "Connection lost — attempting to reconnect…";
 });
 
-onEvent(EVENTS.JOINED, ({ mode, name }) => {
+socketClient.onEvent(EVENTS.JOINED, ({ mode, name }) => {
   presenceLog.textContent = "Connected.";
   joinScreen.classList.add("hidden");
   characterSelectScreen.classList.add("hidden");
@@ -64,28 +64,28 @@ onEvent(EVENTS.JOINED, ({ mode, name }) => {
   }
 });
 
-onEvent(EVENTS.PRESENCE, ({ message }) => {
+socketClient.onEvent(EVENTS.PRESENCE, ({ message }) => {
   presenceLog.textContent = message;
 });
 
-onEvent(EVENTS.YOUR_CHARACTER, (character) => {
-  setActiveCharacter(character);
+socketClient.onEvent(EVENTS.YOUR_CHARACTER, (character) => {
+  clientState.setActiveCharacter(character);
   renderOwnCharacterView();
 });
 
-onEvent(EVENTS.ALL_CHARACTERS, (roster) => {
-  setDmRoster(roster);
+socketClient.onEvent(EVENTS.ALL_CHARACTERS, (roster) => {
+  clientState.setDmRoster(roster);
   renderDMRoster();
 });
 
-onEvent(EVENTS.PLAYERS_ONLINE, (list) => {
-  setOnlinePlayers(list);
+socketClient.onEvent(EVENTS.PLAYERS_ONLINE, (list) => {
+  clientState.setOnlinePlayers(list);
   renderOwnerDropdown();
 });
 
 // ---------- Board/grid/token state sync ----------
-onEvent(EVENTS.STATE, (newState) => {
-  setBoard(newState);
+socketClient.onEvent(EVENTS.STATE, (newState) => {
+  clientState.setBoard(newState);
   renderBoard();
   syncGridFormFromState();
   renderOverlayList();
@@ -93,11 +93,11 @@ onEvent(EVENTS.STATE, (newState) => {
   renderTurnBanner();
 });
 
-onEvent(EVENTS.TOKEN_MOVED, ({ id, col, row, overlayEffects }) => {
-  if (!board.tokens[id]) return;
-  board.tokens[id].col = col;
-  board.tokens[id].row = row;
-  if (overlayEffects) board.tokens[id].overlayEffects = overlayEffects;
+socketClient.onEvent(EVENTS.TOKEN_MOVED, ({ id, col, row, overlayEffects }) => {
+  if (!clientState.board.tokens[id]) return;
+  clientState.board.tokens[id].col = col;
+  clientState.board.tokens[id].row = row;
+  if (overlayEffects) clientState.board.tokens[id].overlayEffects = overlayEffects;
   positionToken(id);
   refreshTokenVisual(id);
 });

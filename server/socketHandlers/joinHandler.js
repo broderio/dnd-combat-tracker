@@ -2,47 +2,59 @@
 //
 // Handles the 'join' event (initial join AND client-driven reconnect rejoin)
 // and 'disconnect'. Populates `session` (shared with the other handler
-// modules for this socket) and keeps the roster/presence broadcasts in sync.
+// classes for this socket) and keeps the roster/presence broadcasts in sync.
 
 import { EVENTS } from "../../shared/protocol.js";
-import { loadDB } from "../db.js";
-import { getState } from "../gameState.js";
-import { addActivePlayer, broadcastOnlinePlayers, pushAllCharactersToDMs, removeActivePlayer } from "../rosterStore.js";
 
-export function registerJoinHandler(io, socket, session) {
-  socket.on(EVENTS.JOIN, ({ mode, name, characterId }) => {
-    session.mode = mode === "dm" ? "dm" : "player";
-    session.name = (name || "").trim() || "Player";
-    session.characterId = characterId || null;
-    socket.data.session = session;
+export class JoinHandler {
+  constructor(io, socket, session, database, gameStateStore, roster) {
+    this.io = io;
+    this.socket = socket;
+    this.session = session;
+    this.db = database;
+    this.gameState = gameStateStore;
+    this.roster = roster;
+  }
 
-    if (session.mode === "player") {
-      const db = loadDB();
-      const user = db.users[session.name.toLowerCase()];
-      const character = user ? user.characters.find((c) => c.id === session.characterId) : null;
+  register() {
+    this.socket.on(EVENTS.JOIN, (payload) => this.#handleJoin(payload));
+    this.socket.on("disconnect", () => this.#handleDisconnect());
+  }
 
-      addActivePlayer(socket.id, session.name, character);
-      if (character) socket.emit(EVENTS.YOUR_CHARACTER, character);
+  #handleJoin({ mode, name, characterId }) {
+    this.session.mode = mode === "dm" ? "dm" : "player";
+    this.session.name = (name || "").trim() || "Player";
+    this.session.characterId = characterId || null;
+    this.socket.data.session = this.session;
+
+    if (this.session.mode === "player") {
+      const db = this.db.loadDB();
+      const user = db.users[this.session.name.toLowerCase()];
+      const character = user ? user.characters.find((c) => c.id === this.session.characterId) : null;
+
+      this.roster.addActivePlayer(this.socket.id, this.session.name, character);
+      if (character) this.socket.emit(EVENTS.YOUR_CHARACTER, character);
     }
 
-    socket.emit(EVENTS.JOINED, { mode: session.mode, name: session.name });
-    socket.emit(EVENTS.STATE, getState());
+    this.socket.emit(EVENTS.JOINED, { mode: this.session.mode, name: this.session.name });
+    this.socket.emit(EVENTS.STATE, this.gameState.getState());
 
-    broadcastOnlinePlayers(io);
-    pushAllCharactersToDMs(io); // refresh every connected DM's roster — covers
-    // first joins AND reconnects
+    this.roster.broadcastOnlinePlayers(this.io);
+    this.roster.pushAllCharactersToDMs(this.io); // refresh every connected DM's
+    // roster — covers first joins AND reconnects
 
-    socket.broadcast.emit(EVENTS.PRESENCE, {
-      message: `${session.name} connected as ${session.mode.toUpperCase()}`,
+    this.socket.broadcast.emit(EVENTS.PRESENCE, {
+      message: `${this.session.name} connected as ${this.session.mode.toUpperCase()}`,
     });
-  });
+  }
 
-  socket.on("disconnect", () => {
-    removeActivePlayer(socket.id);
-    broadcastOnlinePlayers(io);
-    pushAllCharactersToDMs(io);
-    if (session.name) {
-      socket.broadcast.emit(EVENTS.PRESENCE, { message: `${session.name} disconnected` });
+  #handleDisconnect() {
+    this.roster.removeActivePlayer(this.socket.id);
+    this.roster.broadcastOnlinePlayers(this.io);
+    this.roster.pushAllCharactersToDMs(this.io);
+    if (this.session.name) {
+      this.socket.broadcast.emit(EVENTS.PRESENCE, { message: `${this.session.name} disconnected` });
     }
-  });
+  }
 }
+

@@ -9,27 +9,30 @@ import multer from "multer";
 import path from "path";
 
 import { EVENTS } from "../../shared/protocol.js";
-import { getState, setBackground } from "../gameState.js";
 
-export default function createBackgroundRouter(io, uploadDir) {
-  const router = Router();
+export class BackgroundController {
+  constructor(io, gameStateStore, uploadDir) {
+    this.io = io;
+    this.gameState = gameStateStore;
 
-  const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, uploadDir),
-    filename: (req, file, cb) => {
-      const ext = path.extname(file.originalname);
-      cb(null, "background-" + Date.now() + ext);
-    },
-  });
-  const upload = multer({ storage });
+    const storage = multer.diskStorage({
+      destination: (req, file, cb) => cb(null, uploadDir),
+      filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname);
+        cb(null, "background-" + Date.now() + ext);
+      },
+    });
+    const upload = multer({ storage });
 
-  router.post("/upload-background", upload.single("background"), (req, res) => {
+    this.router = Router();
+    this.router.post("/upload-background", upload.single("background"), (req, res) => this.uploadBackground(req, res));
+  }
+
+  uploadBackground(req, res) {
     if (!req.file) return res.status(400).json({ error: "No file uploaded" });
-    setBackground("/uploads/" + req.file.filename);
-    io.emit(EVENTS.STATE, getState()); // broadcast full state so everyone gets
-    // the new background
-    res.json({ ok: true, background: getState().background });
-  });
-
-  return router;
+    this.gameState.setBackground("/uploads/" + req.file.filename);
+    this.io.emit(EVENTS.STATE, this.gameState.getState()); // broadcast full
+    // state so everyone gets the new background
+    res.json({ ok: true, background: this.gameState.getState().background });
+  }
 }
