@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Combat Tracker</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Step 1: mode + login -->
+  <div id="join-screen" class="screen">
+    <div class="join-card">
+      <h1>Combat Tracker</h1>
+      <p class="subtitle">Join as the DM to run the table, or as a player to control your token.</p>
+
+      <div class="join-tabs">
+        <button id="tab-player" class="tab active">Player</button>
+        <button id="tab-dm" class="tab">Dungeon Master</button>
+      </div>
+
+      <div id="player-form" class="join-form">
+        <label>Username
+          <input id="player-username" type="text" placeholder="e.g. brindlebrew" maxlength="30" autocomplete="username" />
+        </label>
+        <label>PIN
+          <input id="player-pin" type="password" inputmode="numeric" placeholder="e.g. 4271" maxlength="12" autocomplete="current-password" />
+        </label>
+        <p class="hint">First time using this username? Any PIN you enter becomes your PIN — just remember it so you can rejoin as the same character(s) later.</p>
+        <p id="player-login-error" class="form-error hidden"></p>
+        <button id="join-player-btn" class="primary-btn">Continue</button>
+      </div>
+
+      <div id="dm-form" class="join-form hidden">
+        <label>DM name (optional)
+          <input id="dm-name" type="text" placeholder="e.g. Dungeon Master" maxlength="30" />
+        </label>
+        <button id="join-dm-btn" class="primary-btn">Enter as DM</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2 (players only): pick or create a character -->
+  <div id="character-select-screen" class="screen hidden">
+    <div class="join-card wide">
+      <h1>Choose Your Character</h1>
+      <p class="subtitle">Signed in as <strong id="cs-username"></strong>.</p>
+
+      <ul id="character-select-list" class="character-select-list"></ul>
+      <p id="no-characters-msg" class="hint hidden">No saved characters yet — create your first one below.</p>
+
+      <button id="create-character-btn" class="secondary-btn wide-btn">+ Create New Character</button>
+      <button id="logout-btn" class="link-btn">Use a different username</button>
+    </div>
+  </div>
+
+  <!-- Character create/edit modal, reused pre-join and mid-game -->
+  <div id="character-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <h2 id="character-modal-title">New Character</h2>
+      <div class="char-form-grid">
+        <label>Name
+          <input id="cf-name" type="text" maxlength="60" />
+        </label>
+        <label>Class
+          <input id="cf-class" type="text" maxlength="40" placeholder="e.g. Ranger" />
+        </label>
+        <label>Race
+          <input id="cf-race" type="text" maxlength="40" placeholder="e.g. Half-Elf" />
+        </label>
+        <label>Level
+          <input id="cf-level" type="number" min="1" max="20" value="1" />
+        </label>
+        <label>Armor Class
+          <input id="cf-ac" type="number" min="0" max="40" value="10" />
+        </label>
+        <label>HP (current)
+          <input id="cf-hp-current" type="number" min="-9999" max="9999" value="10" />
+        </label>
+        <label>HP (max)
+          <input id="cf-hp-max" type="number" min="0" max="9999" value="10" />
+        </label>
+      </div>
+
+      <h3>Ability Scores</h3>
+      <div class="ability-grid">
+        <label>STR <input id="cf-str" type="number" min="1" max="30" value="10" /></label>
+        <label>DEX <input id="cf-dex" type="number" min="1" max="30" value="10" /></label>
+        <label>CON <input id="cf-con" type="number" min="1" max="30" value="10" /></label>
+        <label>INT <input id="cf-int" type="number" min="1" max="30" value="10" /></label>
+        <label>WIS <input id="cf-wis" type="number" min="1" max="30" value="10" /></label>
+        <label>CHA <input id="cf-cha" type="number" min="1" max="30" value="10" /></label>
+      </div>
+
+      <label class="notes-label">Notes
+        <textarea id="cf-notes" maxlength="2000" rows="3" placeholder="Features, equipment, anything else worth remembering"></textarea>
+      </label>
+
+      <label>Color <input id="cf-token-color" type="color" value="#e63946" /></label>
+
+      <div class="modal-actions">
+        <button id="cf-cancel-btn" class="secondary-btn">Cancel</button>
+        <button id="cf-save-btn" class="primary-btn">Save Character</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game screen -->
+  <div id="game-screen" class="screen hidden">
+    <header id="topbar">
+      <div class="brand">Combat Tracker</div>
+      <div id="role-badge" class="badge">—</div>
+      <div id="presence-log"></div>
+    </header>
+
+    <div id="layout">
+      <!-- DM controls, hidden entirely for players -->
+      <aside id="dm-panel" class="hidden">
+        <h2>Map</h2>
+        <form id="upload-form">
+          <input type="file" id="background-input" accept="image/*" />
+          <button type="submit" class="secondary-btn">Upload Background</button>
+        </form>
+
+        <h2>Grid</h2>
+        <div class="grid-controls">
+          <label>Columns <input id="grid-cols" type="number" min="1" max="100" /></label>
+          <label>Rows <input id="grid-rows" type="number" min="1" max="100" /></label>
+          <label>Cell size (px) <input id="grid-cellsize" type="number" min="10" max="200" /></label>
+          <label class="checkbox-label">
+            <input id="grid-visible" type="checkbox" /> Show grid lines to players
+          </label>
+          <button id="apply-grid-btn" class="secondary-btn">Apply Grid</button>
+        </div>
+
+        <h2>Tokens</h2>
+        <div class="token-controls">
+          <label>Name <input id="token-name" type="text" placeholder="Goblin / Brindle" maxlength="40" /></label>
+          <label>Color <input id="token-color" type="color" value="#e63946" /></label>
+          <label>Owner
+            <select id="token-owner">
+              <option value="">None (DM-controlled)</option>
+            </select>
+          </label>
+          <button id="add-token-btn" class="secondary-btn">Add Token</button>
+          <button id="generate-player-tokens-btn" class="secondary-btn">Generate Player Tokens</button>
+        </div>
+        <ul id="token-list"></ul>
+      </aside>
+
+      <main id="board-wrap">
+        <div id="board">
+          <div id="background-layer"></div>
+          <svg id="grid-layer" xmlns="http://www.w3.org/2000/svg"></svg>
+          <div id="token-layer"></div>
+        </div>
+        <p id="board-hint" class="hidden">Drag your token to move it. It will snap to the nearest grid cell.</p>
+      </main>
+
+      <!-- Character sheet sidebar: players see only their own; DM sees everyone online -->
+      <aside id="character-sidebar">
+        <h2 id="char-sidebar-title">Character Sheet</h2>
+
+        <div id="own-character-view" class="hidden">
+          <!-- filled in by client.js for players -->
+        </div>
+
+        <div id="all-characters-view" class="hidden">
+          <!-- filled in by client.js for the DM: one card per online player -->
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
