@@ -224,19 +224,17 @@ export const STATUS_EFFECTS = {
 };
 
 /**
- * Area-of-effect overlay types. `effectTag` is the status-effect-like tag
- * automatically applied (as `token.overlayEffects`, kept separate from the
- * the DM's manually-set `character.statusEffects`) to any token whose cell falls
- * inside an overlay of this type — see server/gameState.js's
- * `recomputeOverlayEffects`. `generic` has no automatic effect, useful for
- * marking an area (e.g. difficult terrain) without implying a condition.
+ * Area-of-effect overlay types — purely visual/organizational markers on the
+ * board (e.g. "this area is on fire", "this is difficult terrain"). They do
+ * NOT automatically apply any status effect to tokens inside them; the DM
+ * still applies status effects manually via the quick-edit controls.
  */
 export const OVERLAY_TYPES = {
-  fire: { label: "Fire", color: "#e0703f", effectTag: "burning" },
-  water: { label: "Water", color: "#3f7fe0", effectTag: "soaked" },
-  electric: { label: "Electricity", color: "#e0d63f", effectTag: "shocked" },
-  poison: { label: "Poison", color: "#5c7a4f", effectTag: "poisoned" },
-  generic: { label: "Generic", color: "#9c9c9c", effectTag: null },
+  fire: { label: "Fire", color: "#e0703f" },
+  water: { label: "Water", color: "#3f7fe0" },
+  electric: { label: "Electricity", color: "#e0d63f" },
+  poison: { label: "Poison", color: "#5c7a4f" },
+  generic: { label: "Generic", color: "#9c9c9c" },
 };
 
 /** Shapes supported for an overlay, centered on `col`/`row`. */
@@ -583,22 +581,13 @@ export class Grid {
  * reference (`combatantId`) to the Character (or, from Phase 2, monster
  * instance) it displays. It never stores its own HP/status — those are
  * looked up from the source record (see `computeCondition` and
- * GameStateStore#getState's `combatantStatuses`). `overlayEffects` is the one
- * exception: it's environmental (AoE overlay membership), computed by
- * `recomputeOverlayEffects` (see GameStateStore) and never set from client
- * input.
+ * GameStateStore#getState's `combatantStatuses`). Overlays are a purely
+ * visual/organizational tool (see OVERLAY_TYPES) — a token's cell falling
+ * inside one has no automatic effect on the token.
  */
 export class Token {
   constructor() {
     this.id = null;
-    // overlayEffects is the only auto-computed, token-specific "effect" list
-    // left on Token — it's environmental (which AoE overlay cells this token
-    // currently sits in), not combat state. HP and status effects live only
-    // on the linked Character (or, from Phase 2, monster instance) referenced
-    // by `combatantId` — see computeCondition() and GameStateStore's
-    // combatantStatuses. A token with no combatantId (a bare DM marker) has
-    // no HP/status concept at all in v1.
-    this.overlayEffects = [];
     for (const field of TOKEN_FIELDS) this[field.key] = field.default;
   }
 
@@ -607,9 +596,7 @@ export class Token {
   }
 
   static clone(existing) {
-    const t = Object.assign(new Token(), existing);
-    t.overlayEffects = [...existing.overlayEffects];
-    return t;
+    return Object.assign(new Token(), existing);
   }
 
   /**
@@ -617,8 +604,7 @@ export class Token {
    * `col`/`row` into bounds. `existing` is the current token when this is a
    * partial update (e.g. the DM renaming/recoloring it) — every field is
    * independently optional in `input`, mirroring `Character.fromInput`. `id`
-   * and `overlayEffects` are assigned/computed by the caller (GameStateStore),
-   * never from `input`.
+   * is assigned by the caller (GameStateStore), never from `input`.
    */
   static fromInput(input, grid, existing) {
     const t = existing ? Token.clone(existing) : new Token();
@@ -642,38 +628,8 @@ export class Token {
     return t;
   }
 
-  /** True if this token's cell falls inside `overlay`'s area. */
-  isInsideOverlay(overlay) {
-    const dc = this.col - overlay.col;
-    const dr = this.row - overlay.row;
-    if (overlay.shape === "square") {
-      return Math.abs(dc) <= overlay.radius && Math.abs(dr) <= overlay.radius;
-    }
-    return dc * dc + dr * dr <= overlay.radius * overlay.radius; // circle
-  }
-
-  /**
-   * Recomputes `overlayEffects` (the automatic, overlay-derived status tags)
-   * from the given list of overlays. Kept entirely separate from
-   * `statusEffects` (the DM's manual edits) so the two never clobber each
-   * other.
-   */
-  recomputeOverlayEffects(overlays) {
-    const tags = new Set();
-    for (const overlay of overlays) {
-      if (this.isInsideOverlay(overlay)) {
-        const effectTag = OVERLAY_TYPES[overlay.type]?.effectTag;
-        if (effectTag) tags.add(effectTag);
-      }
-    }
-    this.overlayEffects = Array.from(tags);
-  }
-
   toJSON() {
-    const out = {
-      id: this.id,
-      overlayEffects: [...this.overlayEffects],
-    };
+    const out = { id: this.id };
     for (const field of TOKEN_FIELDS) out[field.key] = this[field.key];
     return out;
   }

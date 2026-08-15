@@ -15,6 +15,17 @@ import { buildQuickEditControls } from "./quickEditControls.js";
 
 const monstersView = document.getElementById("monsters-view");
 
+/**
+ * A short, stable label derived from a MonsterInstance's id (e.g.
+ * "moninst_12" -> "#12") — shown both on this sidebar's card and on the
+ * matching token on the board (see boardView.js) so the DM can tell at a
+ * glance which token a given card refers to, and vice versa.
+ */
+export function monsterBadgeLabel(combatantId) {
+  const match = /(\d+)$/.exec(combatantId || "");
+  return match ? `#${match[1]}` : "";
+}
+
 function hpBarClass(current, max) {
   if (max <= 0) return "";
   const pct = current / max;
@@ -43,7 +54,7 @@ function buildMonsterCard(instance) {
 
   const name = document.createElement("div");
   name.className = "char-sheet-name";
-  name.textContent = instance.name;
+  name.textContent = `${monsterBadgeLabel(instance.id)} ${instance.name}`.trim();
 
   const meta = document.createElement("div");
   meta.className = "char-sheet-meta";
@@ -71,6 +82,9 @@ function buildMonsterCard(instance) {
       onAdjustHp: (delta) => {
         const next = Math.max(-9999, Math.min(9999, instance.hp.current + delta));
         socketClient.emitEvent(EVENTS.UPDATE_MONSTER_INSTANCE, { id: instance.id, hp: { current: next } });
+      },
+      onSetCurrentHp: (current) => {
+        socketClient.emitEvent(EVENTS.UPDATE_MONSTER_INSTANCE, { id: instance.id, hp: { current } });
       },
       onSetMaxHp: (max) => {
         socketClient.emitEvent(EVENTS.UPDATE_MONSTER_INSTANCE, { id: instance.id, hp: { max } });

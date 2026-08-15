@@ -147,6 +147,38 @@
         <div id="presence-log"></div>
       </header>
 
+      <!-- Dice roller: available to both the DM and players; rolls are broadcast to everyone.
+           Draggable (via the header) and collapsible; position/collapsed state persist in localStorage. -->
+      <div id="dice-roller">
+        <div id="dice-roller-header">
+          <span class="material-icons" aria-hidden="true">drag_indicator</span>
+          <span id="dice-roller-title">Dice</span>
+          <button id="dice-roller-toggle" type="button" title="Collapse/expand">
+            <i class="material-icons">expand_more</i>
+          </button>
+        </div>
+        <div id="dice-roller-body">
+          <div class="dice-quick-buttons">
+            <button class="dice-quick-btn" data-sides="4">d4</button>
+            <button class="dice-quick-btn" data-sides="6">d6</button>
+            <button class="dice-quick-btn" data-sides="8">d8</button>
+            <button class="dice-quick-btn" data-sides="10">d10</button>
+            <button class="dice-quick-btn" data-sides="12">d12</button>
+            <button class="dice-quick-btn" data-sides="20">d20</button>
+            <button class="dice-quick-btn" data-sides="100">d100</button>
+          </div>
+          <div class="dice-custom-row">
+            <input id="dice-count" type="number" min="1" max="20" value="1" />
+            <span>d</span>
+            <input id="dice-sides" type="number" min="2" max="100" value="20" />
+            <span>+</span>
+            <input id="dice-modifier" type="number" value="0" />
+            <button id="dice-roll-btn" class="secondary-btn">Roll</button>
+          </div>
+          <ul id="dice-log"></ul>
+        </div>
+      </div>
+
       <div id="layout">
         <!-- DM controls, hidden entirely for players -->
         <aside id="dm-panel" class="hidden">

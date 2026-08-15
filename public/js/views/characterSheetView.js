@@ -107,6 +107,12 @@ function buildQuickEditControls(username, character) {
       const next = Math.max(-9999, Math.min(9999, character.hp.current + delta));
       ApiClient.updateCharacter(username, character.id, { hp: { current: next } });
     },
+    onSetCurrentHp: (current) => {
+      ApiClient.updateCharacter(username, character.id, { hp: { current } });
+    },
+    onSetMaxHp: (max) => {
+      ApiClient.updateCharacter(username, character.id, { hp: { max } });
+    },
     onToggleEffect: (effect, checked) => {
       const current = new Set(character.statusEffects || []);
       if (checked) current.add(effect);

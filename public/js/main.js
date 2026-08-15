@@ -13,6 +13,7 @@ import "./views/joinView.js";
 import "./views/characterSelectView.js";
 import "./views/characterModalView.js";
 import "./views/measureToolView.js";
+import "./views/diceRollerView.js";
 
 import { EVENTS } from "/shared/protocol.js";
 
@@ -99,11 +100,10 @@ socketClient.onEvent(EVENTS.STATE, (newState) => {
   renderTurnBanner();
 });
 
-socketClient.onEvent(EVENTS.TOKEN_MOVED, ({ id, col, row, overlayEffects }) => {
+socketClient.onEvent(EVENTS.TOKEN_MOVED, ({ id, col, row }) => {
   if (!clientState.board.tokens[id]) return;
   clientState.board.tokens[id].col = col;
   clientState.board.tokens[id].row = row;
-  if (overlayEffects) clientState.board.tokens[id].overlayEffects = overlayEffects;
   positionToken(id);
   refreshTokenVisual(id);
 });

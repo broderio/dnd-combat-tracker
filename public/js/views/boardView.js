@@ -8,6 +8,7 @@ import { socketClient } from "../socketClient.js";
 import { clientState } from "../state.js";
 
 import { renderTokenList } from "./dmPanelView.js";
+import { monsterBadgeLabel } from "./monsterSheetView.js";
 
 export class BoardView {
   constructor() {
@@ -198,7 +199,7 @@ export class BoardView {
 
   #applyTokenVisualState(el, token) {
     const status = BoardView.#combatantStatus(token);
-    const effects = [...(status?.statusEffects || []), ...(token.overlayEffects || [])];
+    const effects = status?.statusEffects || [];
     const bloodied = status ? status.condition === "bloodied" || status.condition === "critical" : false;
     el.classList.toggle("bloodied", bloodied);
     el.classList.toggle("active-turn", token.id === this.#activeTurnTokenId());
@@ -232,6 +233,16 @@ export class BoardView {
       el.style.background = token.color;
       el.textContent = BoardView.#initials(token.name);
       this.#applyTokenVisualState(el, token);
+
+      // Monster-linked tokens get a small "#N" badge matching the same
+      // instance's card in the Monsters sidebar (see monsterSheetView.js),
+      // so the DM can tell at a glance which card a given token refers to.
+      if (token.combatantType === "monster" && token.combatantId) {
+        const badge = document.createElement("span");
+        badge.className = "token-monster-badge";
+        badge.textContent = monsterBadgeLabel(token.combatantId);
+        el.appendChild(badge);
+      }
 
       const canDrag =
         clientState.session.mode === "dm" ||

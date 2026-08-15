@@ -37,8 +37,7 @@ export class GameStateStore {
 
     // tokens[id] = Token — owner === null means it's DM-controlled
     // (monster/NPC), otherwise it's a player username. statusEffects are
-    // DM-set conditions; overlayEffects are computed automatically from AoE
-    // overlays (see #recomputeAllOverlayEffects).
+    // DM-set conditions on the linked combatant, not the token itself.
     this.tokens = {};
     for (const [id, t] of Object.entries(persisted?.tokens ?? {})) {
       this.tokens[id] = Token.clone(t);
@@ -190,7 +189,6 @@ export class GameStateStore {
     const token = Token.fromInput(input, this.grid);
     token.id = id;
     this.tokens[id] = token;
-    token.recomputeOverlayEffects(Object.values(this.overlays));
     this.#persist();
     return token;
   }
@@ -239,7 +237,6 @@ export class GameStateStore {
 
     token.col = targetCol;
     token.row = targetRow;
-    token.recomputeOverlayEffects(Object.values(this.overlays));
     this.#persist();
     return token;
   }
@@ -320,22 +317,13 @@ export class GameStateStore {
     const overlay = Overlay.fromInput(input, this.grid);
     overlay.id = id;
     this.overlays[id] = overlay;
-    this.#recomputeAllOverlayEffects();
     this.#persist();
     return overlay;
   }
 
   removeOverlay(id) {
     delete this.overlays[id];
-    this.#recomputeAllOverlayEffects();
     this.#persist();
-  }
-
-  #recomputeAllOverlayEffects() {
-    const overlays = Object.values(this.overlays);
-    for (const token of Object.values(this.tokens)) {
-      token.recomputeOverlayEffects(overlays);
-    }
   }
 
   // ---------------- Turn order / initiative ----------------

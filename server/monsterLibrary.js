@@ -88,7 +88,15 @@ function toTemplate(entry, index) {
  */
 export class MonsterLibrary {
   constructor(rawMonsters) {
-    this.templates = rawMonsters.map((entry, index) => toTemplate(entry, index));
+    // Only monsters with a usable AC, HP, speed, and at least one parsed
+    // attack are kept — `dnd-data` has many older/simpler entries that carry
+    // just Category/Size/Type/Alignment/Challenge Rating, which aren't
+    // playable as a placed combat token (no HP to track, no attacks to show
+    // the DM), so they're filtered out of the picker entirely rather than
+    // showing up as unusable search results.
+    this.templates = rawMonsters
+      .map((entry, index) => toTemplate(entry, index))
+      .filter((t) => t.ac !== null && t.hpMax !== null && t.speed && t.attacks.length > 0);
     this.byId = new Map(this.templates.map((t) => [t.id, t]));
   }
 

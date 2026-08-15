@@ -37,7 +37,7 @@ export class TokenHandlers {
     if (!PermissionPolicy.canMoveToken(this.session, token)) return; // players may only move their own token
 
     const moved = this.gameState.moveToken(id, col, row);
-    this.io.emit(EVENTS.TOKEN_MOVED, { id, col: moved.col, row: moved.row, overlayEffects: moved.overlayEffects });
+    this.io.emit(EVENTS.TOKEN_MOVED, { id, col: moved.col, row: moved.row });
   }
 
   // DM-only: creates a fresh MonsterInstance from the dnd-data library and a

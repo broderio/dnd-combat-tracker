@@ -30,8 +30,6 @@
  * @property {string} id
  * @property {number} col
  * @property {number} row
- * @property {string[]} overlayEffects - recomputed for the moved token, since
- *   moving can enter/leave an AoE overlay
  *
  * @typedef {Object} AddTokenPayload
  * @property {string} name
@@ -82,6 +80,21 @@
  * @typedef {Object} DMRosterEntry
  * @property {string} username
  * @property {import('./schema.js').Character} character
+ *
+ * @typedef {Object} RollDicePayload - client -> server dice roll request
+ * @property {number} count - number of dice, 1-20
+ * @property {number} sides - sides per die, 2-100
+ * @property {number} modifier - flat modifier added to the total, -100..100
+ *
+ * @typedef {Object} DiceRolledPayload - server -> everyone, broadcast so all
+ *   players/the DM can see every roll (the standard "public dice log" UX)
+ * @property {string} username
+ * @property {'dm'|'player'} mode
+ * @property {number} count
+ * @property {number} sides
+ * @property {number} modifier
+ * @property {number[]} rolls - each individual die result
+ * @property {number} total - sum of `rolls` plus `modifier`
  */
 export const EVENTS = {
   // client -> server
@@ -96,6 +109,7 @@ export const EVENTS = {
   REMOVE_OVERLAY: "remove-overlay",
   SET_TURN_ORDER: "set-turn-order",
   NEXT_TURN: "next-turn",
+  ROLL_DICE: "roll-dice",
 
   // server -> client
   JOINED: "joined",
@@ -109,4 +123,5 @@ export const EVENTS = {
   // ALL_CHARACTERS. The general `state` broadcast only carries the redacted
   // combatantStatuses view (see MonsterInstance in shared/schema.js).
   ALL_MONSTER_INSTANCES: "all-monster-instances",
+  DICE_ROLLED: "dice-rolled",
 };

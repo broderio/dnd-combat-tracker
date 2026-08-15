@@ -5,11 +5,14 @@
 // source of truth" section) — there is no more per-token HP/status editor
 // here. If a token is linked to a character (`combatantId`), that's shown as
 // a label only; editing HP/status happens in the "All Characters" sidebar
-// (see characterSheetView.js's quick-edit controls), not here.
+// (see characterSheetView.js's quick-edit controls) or, for monsters, the
+// "Monsters" sidebar (see monsterSheetView.js) — not here.
 
 import { EVENTS } from "/shared/protocol.js";
 
 import { socketClient } from "../socketClient.js";
+
+import { monsterBadgeLabel } from "./monsterSheetView.js";
 
 class TokenEditorView {
   /** Builds one `<li>` for the DM's token list. */
@@ -28,7 +31,8 @@ class TokenEditorView {
     meta.className = "tok-meta";
     let linkText = "";
     if (token.combatantId) {
-      linkText = token.combatantType === "monster" ? " (Monsters)" : " (All Characters)";
+      linkText =
+        token.combatantType === "monster" ? ` (Monsters ${monsterBadgeLabel(token.combatantId)})` : " (All Characters)";
     }
     meta.textContent = `${token.name} — ${token.owner || "DM-controlled"}${linkText}`;
 
@@ -38,13 +42,6 @@ class TokenEditorView {
 
     row.append(swatch, meta, removeBtn);
     li.appendChild(row);
-
-    if (token.overlayEffects && token.overlayEffects.length) {
-      const auto = document.createElement("span");
-      auto.className = "token-overlay-tag";
-      auto.textContent = token.overlayEffects.join(", ");
-      li.appendChild(auto);
-    }
 
     return li;
   }

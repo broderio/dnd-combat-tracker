@@ -822,6 +822,22 @@ body {
 .token.bloodied {
   box-shadow: 0 0 10px 4px rgba(220, 40, 40, 0.85);
 }
+.token-monster-badge {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  min-width: 15px;
+  padding: 0 3px;
+  background: #2b2b2b;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 8px;
+  font-size: 0.6rem;
+  line-height: 15px;
+  text-align: center;
+  color: #fff;
+  pointer-events: none;
+  z-index: 3;
+}
 .token-effects {
   position: absolute;
   left: 50%;
@@ -946,11 +962,6 @@ body {
   border-top: 1px solid var(--line);
   font-size: 0.82rem;
 }
-.token-overlay-tag {
-  font-size: 0.75rem;
-  color: var(--ember-bright);
-  margin-top: 2px;
-}
 
 /* DM sidebar quick-edit (current HP +/-, status toggles) — replaces the old
    per-token HP/status editor now that tokens are a read-only projection of
@@ -969,21 +980,42 @@ body {
 .quick-edit-hp {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   margin-bottom: 8px;
   font-size: 0.85rem;
 }
 .quick-edit-hp button {
   padding: 2px 8px;
 }
+.quick-edit-current-hp,
 .quick-edit-max-hp {
-  width: 50px;
+  width: 54px;
   padding: 2px 4px;
   background: var(--wood);
   border: 1px solid var(--line);
   border-radius: 4px;
   color: var(--parchment);
   font-family: inherit;
+}
+.quick-edit-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.quick-edit-step button {
+  padding: 2px 10px;
+  font-weight: 700;
+}
+.quick-edit-step-amount {
+  width: 48px;
+  padding: 2px 4px;
+  background: var(--wood);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--parchment);
+  font-family: inherit;
+  text-align: center;
 }
 
 /* ---------- Turn order + overlay panels (DM panel) ---------- */
@@ -1050,4 +1082,102 @@ body {
 #place-overlay-btn.active {
   border-color: var(--ember);
   color: var(--ember-bright);
+}
+
+/* ---------- Dice roller (visible to both DM and players) ---------- */
+#dice-roller {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  width: 230px;
+  padding: 0;
+  background: var(--wood-light);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  z-index: 60;
+}
+#dice-roller-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--parchment-dim);
+}
+#dice-roller-header:active {
+  cursor: grabbing;
+}
+#dice-roller-header .material-icons {
+  font-size: 18px;
+  opacity: 0.6;
+}
+#dice-roller-title {
+  flex: 1;
+}
+#dice-roller-toggle {
+  background: none;
+  border: none;
+  color: var(--parchment-dim);
+  cursor: pointer;
+  padding: 0;
+  line-height: 0;
+}
+#dice-roller-toggle:hover {
+  color: var(--parchment);
+}
+#dice-roller-body {
+  padding: 10px;
+}
+#dice-roller.collapsed #dice-roller-body {
+  display: none;
+}
+.dice-quick-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.dice-quick-btn {
+  flex: 1 0 auto;
+  padding: 4px 6px;
+  font-size: 0.78rem;
+}
+.dice-custom-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+  font-size: 0.82rem;
+}
+.dice-custom-row input {
+  width: 40px;
+  padding: 2px 4px;
+  background: var(--wood);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--parchment);
+  font-family: inherit;
+}
+.dice-custom-row button {
+  margin-left: auto;
+  padding: 3px 10px;
+}
+#dice-log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 130px;
+  overflow-y: auto;
+  font-size: 0.76rem;
+  color: var(--parchment-dim);
+}
+#dice-log li {
+  padding: 2px 0;
+  border-bottom: 1px solid var(--line);
 }
