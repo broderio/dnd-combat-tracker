@@ -44,7 +44,7 @@ You should see an output similar to:
 
 ```
 Session Status                online
-Account                       <Your Account> (Plan: Free)
+Account                       <your-account> (Plan: Free)
 Version                       3.39.11
 Region                        <your-region>
 Latency                       34ms
