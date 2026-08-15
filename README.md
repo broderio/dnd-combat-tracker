@@ -1,4 +1,4 @@
-# DnD 5e Combat Tracker
+# DnD Combat Tracker
 
 A real-time DnD combat tracker you run from your own laptop and share with your players over the internet.
 
