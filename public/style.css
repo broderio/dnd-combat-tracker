@@ -348,6 +348,38 @@ body {
   font-family: inherit;
 }
 
+.cf-entry-list {
+  margin: 8px 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cf-entry-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--wood-light);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  color: var(--parchment-dim);
+}
+.cf-entry-row strong {
+  color: var(--parchment);
+}
+.cf-entry-remove-btn {
+  background: none;
+  border: none;
+  color: var(--ember-bright, #e63946);
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1;
+  padding: 2px 6px;
+}
+
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;

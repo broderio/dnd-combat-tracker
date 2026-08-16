@@ -40,6 +40,26 @@ export class ApiClient {
     return res.json();
   }
 
+  static async searchClasses(name) {
+    const res = await fetch(`/api/character-options/classes?name=${encodeURIComponent(name || '')}`);
+    return res.json();
+  }
+
+  static async searchRaces(name) {
+    const res = await fetch(`/api/character-options/races?name=${encodeURIComponent(name || '')}`);
+    return res.json();
+  }
+
+  static async searchWeapons(name) {
+    const res = await fetch(`/api/character-options/weapons?name=${encodeURIComponent(name || '')}`);
+    return res.json();
+  }
+
+  static async searchSpells(name) {
+    const res = await fetch(`/api/character-options/spells?name=${encodeURIComponent(name || '')}`);
+    return res.json();
+  }
+
   static async getEncounters() {
     const res = await fetch('/api/encounters');
     return res.json();

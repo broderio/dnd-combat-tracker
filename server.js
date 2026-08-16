@@ -8,6 +8,7 @@ import { AuthController } from './server/routes/auth.js';
 import { CharactersController } from './server/routes/characters.js';
 import { BackgroundController } from './server/routes/background.js';
 import { MonstersController } from './server/routes/monsters.js';
+import { CharacterOptionsController } from './server/routes/characterOptions.js';
 import { EncountersController } from './server/routes/encounters.js';
 import { registerSocketHandlers } from './server/socketHandlers/index.js';
 import { db } from './server/db.js';
@@ -42,6 +43,7 @@ app.use(express.json());
 app.use('/api', new AuthController(db).router);
 app.use('/api', new CharactersController(io, db, rosterStore, gameState).router);
 app.use('/api', new MonstersController().router);
+app.use('/api', new CharacterOptionsController().router);
 app.use('/api', new EncountersController(io, db, gameState).router);
 app.use(new BackgroundController(io, gameState, UPLOAD_DIR).router);
 

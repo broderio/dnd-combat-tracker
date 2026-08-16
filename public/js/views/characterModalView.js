@@ -10,6 +10,83 @@ const cfCancelBtn = document.getElementById('cf-cancel-btn');
 const cfDeleteBtn = document.getElementById('cf-delete-btn');
 const cfSaveBtn = document.getElementById('cf-save-btn');
 
+const cfClassInput = document.getElementById('cf-class');
+const cfRaceInput = document.getElementById('cf-race');
+const cfClassOptions = document.getElementById('cf-class-options');
+const cfRaceOptions = document.getElementById('cf-race-options');
+
+const cfAttackSearch = document.getElementById('cf-attack-search');
+const cfWeaponOptions = document.getElementById('cf-weapon-options');
+const cfAttackToHit = document.getElementById('cf-attack-tohit');
+const cfAttackDamage = document.getElementById('cf-attack-damage');
+const cfAttackDamageType = document.getElementById('cf-attack-damagetype');
+const cfAttackDesc = document.getElementById('cf-attack-desc');
+const cfAddAttackBtn = document.getElementById('cf-add-attack-btn');
+const cfAttacksList = document.getElementById('cf-attacks-list');
+
+const cfSpellSearch = document.getElementById('cf-spell-search');
+const cfSpellOptions = document.getElementById('cf-spell-options');
+const cfAddSpellBtn = document.getElementById('cf-add-spell-btn');
+const cfSpellsList = document.getElementById('cf-spells-list');
+
+const cfFeatureName = document.getElementById('cf-feature-name');
+const cfFeatureDesc = document.getElementById('cf-feature-desc');
+const cfAddFeatureBtn = document.getElementById('cf-add-feature-btn');
+const cfFeaturesList = document.getElementById('cf-features-list');
+
+/** Debounces a datalist-populating search so we don't fire a request per keystroke. */
+function debounceDatalist(input, datalist, searchFn, { onResults } = {}) {
+  let timer = null;
+  input.addEventListener('input', () => {
+    clearTimeout(timer);
+    const query = input.value.trim();
+    if (!query) {
+      datalist.innerHTML = '';
+      return;
+    }
+    timer = setTimeout(async () => {
+      try {
+        const results = await searchFn(query);
+        datalist.innerHTML = '';
+        results.forEach((value) => {
+          const option = document.createElement('option');
+          option.value = typeof value === 'string' ? value : value.name;
+          datalist.appendChild(option);
+        });
+        if (onResults) onResults(results);
+      } catch {
+        // Ignore transient lookup failures — the field stays freely editable either way.
+      }
+    }, 200);
+  });
+}
+
+debounceDatalist(cfClassInput, cfClassOptions, async (q) => (await ApiClient.searchClasses(q)).classes || []);
+debounceDatalist(cfRaceInput, cfRaceOptions, async (q) => (await ApiClient.searchRaces(q)).races || []);
+
+debounceDatalist(cfAttackSearch, cfWeaponOptions, async (q) => (await ApiClient.searchWeapons(q)).weapons || []);
+
+let spellResultsByName = new Map();
+debounceDatalist(cfSpellSearch, cfSpellOptions, async (q) => (await ApiClient.searchSpells(q)).spells || [], {
+  onResults: (results) => {
+    spellResultsByName = new Map(results.map((s) => [s.name, s]));
+  },
+});
+
+function buildEntryRow(label, onRemove) {
+  const row = document.createElement('div');
+  row.className = 'cf-entry-row';
+  const labelEl = document.createElement('span');
+  labelEl.innerHTML = label;
+  const removeBtn = document.createElement('button');
+  removeBtn.type = 'button';
+  removeBtn.className = 'cf-entry-remove-btn';
+  removeBtn.textContent = '✕';
+  removeBtn.addEventListener('click', onRemove);
+  row.append(labelEl, removeBtn);
+  return row;
+}
+
 export class CharacterModalView {
   constructor() {
     this.editingContext = null; // Which flow opened the modal, so Save knows what to do afterwards.
@@ -22,6 +99,94 @@ export class CharacterModalView {
 
     this.editingCharacterId = null; // the character being edited, or null if creating a new one
     this.editingUsername = null; // whose character this is (usually currentUsername, but not for 'edit-as-dm')
+
+    // Working copies of the searchable-picker-backed lists, edited in the
+    // modal and only written back onto the character on Save.
+    this.attacks = [];
+    this.spells = [];
+    this.features = [];
+
+    cfAddAttackBtn.addEventListener('click', () => this.addAttack());
+    cfAddSpellBtn.addEventListener('click', () => this.addSpell());
+    cfAddFeatureBtn.addEventListener('click', () => this.addFeature());
+  }
+
+  addAttack() {
+    const name = cfAttackSearch.value.trim();
+    if (!name) return;
+    this.attacks.push({
+      name,
+      toHit: cfAttackToHit.value.trim() || null,
+      damage: cfAttackDamage.value.trim() || null,
+      damageType: cfAttackDamageType.value.trim() || null,
+      desc: cfAttackDesc.value.trim(),
+    });
+    cfAttackSearch.value = '';
+    cfAttackToHit.value = '';
+    cfAttackDamage.value = '';
+    cfAttackDamageType.value = '';
+    cfAttackDesc.value = '';
+    this.renderAttacksList();
+  }
+
+  addSpell() {
+    const name = cfSpellSearch.value.trim();
+    if (!name) return;
+    const known = spellResultsByName.get(name);
+    this.spells.push({ name, level: known ? known.level : 0, school: known ? known.school : null });
+    cfSpellSearch.value = '';
+    this.renderSpellsList();
+  }
+
+  addFeature() {
+    const name = cfFeatureName.value.trim();
+    if (!name) return;
+    this.features.push({ name, desc: cfFeatureDesc.value.trim() });
+    cfFeatureName.value = '';
+    cfFeatureDesc.value = '';
+    this.renderFeaturesList();
+  }
+
+  renderAttacksList() {
+    cfAttacksList.innerHTML = '';
+    this.attacks.forEach((attack, index) => {
+      const parts = [attack.toHit ? `${attack.toHit} to hit` : null, attack.damage ? attack.damage : null].filter(
+        Boolean
+      );
+      const label = `<strong>${attack.name}</strong>${parts.length ? ' — ' + parts.join(', ') : ''}`;
+      cfAttacksList.appendChild(
+        buildEntryRow(label, () => {
+          this.attacks.splice(index, 1);
+          this.renderAttacksList();
+        })
+      );
+    });
+  }
+
+  renderSpellsList() {
+    cfSpellsList.innerHTML = '';
+    this.spells.forEach((spell, index) => {
+      const levelLabel = spell.level ? `Level ${spell.level}` : 'Cantrip';
+      const label = `<strong>${spell.name}</strong> — ${levelLabel}`;
+      cfSpellsList.appendChild(
+        buildEntryRow(label, () => {
+          this.spells.splice(index, 1);
+          this.renderSpellsList();
+        })
+      );
+    });
+  }
+
+  renderFeaturesList() {
+    cfFeaturesList.innerHTML = '';
+    this.features.forEach((feature, index) => {
+      cfFeaturesList.appendChild(
+        buildEntryRow(`<strong>${feature.name}</strong>`, () => {
+          this.features.splice(index, 1);
+          this.renderFeaturesList();
+        })
+      );
+    });
   }
 
   /**
@@ -54,6 +219,21 @@ export class CharacterModalView {
     document.getElementById('cf-notes').value = c.notes || '';
     document.getElementById('cf-token-color').value = c.tokenColor || '#e63946';
 
+    this.attacks = (c.attacks || []).map((a) => ({ ...a }));
+    this.spells = (c.spells || []).map((s) => ({ ...s }));
+    this.features = (c.features || []).map((f) => ({ ...f }));
+    this.renderAttacksList();
+    this.renderSpellsList();
+    this.renderFeaturesList();
+    cfAttackSearch.value = '';
+    cfAttackToHit.value = '';
+    cfAttackDamage.value = '';
+    cfAttackDamageType.value = '';
+    cfAttackDesc.value = '';
+    cfSpellSearch.value = '';
+    cfFeatureName.value = '';
+    cfFeatureDesc.value = '';
+
     characterModal.classList.remove('hidden');
 
     if (
@@ -66,6 +246,7 @@ export class CharacterModalView {
       cfDeleteBtn.classList.remove('hidden');
     }
   }
+
 
   async delete() {
     if (!this.editingCharacterId) {
@@ -118,6 +299,9 @@ export class CharacterModalView {
       },
       notes: document.getElementById('cf-notes').value,
       tokenColor: document.getElementById('cf-token-color').value,
+      attacks: this.attacks,
+      spells: this.spells,
+      features: this.features,
     };
 
     try {

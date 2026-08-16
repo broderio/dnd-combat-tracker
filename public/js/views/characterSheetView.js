@@ -1,5 +1,12 @@
-import { computeCondition, ABILITY_KEYS } from '/shared/schema.js';
 import { buildQuickEditControls as sharedBuildQuickEditControls } from './quickEditControls.js';
+import {
+  buildAttacksList,
+  buildFeatureList,
+  buildFlatSpellList,
+  buildAbilityScoreGrid,
+  computeModifiers,
+  buildSheetCard,
+} from './sheetCardView.js';
 
 import { ApiClient } from '../api.js';
 import { clientState } from '../state.js';
@@ -9,67 +16,33 @@ import { openCharacterModal } from './characterModalView.js';
 const ownCharacterView = document.getElementById('own-character-view');
 const allCharactersView = document.getElementById('all-characters-view');
 
-function abilityMod(score) {
-  const mod = Math.floor((score - 10) / 2);
-  return mod >= 0 ? `+${mod}` : `${mod}`;
-}
-
 function buildCharacterCard(character, { showEditButton, showQuickEdit, username }) {
-  const card = document.createElement('div');
-  card.className = 'char-sheet-card';
-
-  const name = document.createElement('div');
-  name.className = 'char-sheet-name';
-  name.textContent = character.name;
-
-  const meta = document.createElement('div');
-  meta.className = 'char-sheet-meta';
-  meta.textContent = `Level ${character.level} ${character.race ? character.race + ' ' : ''}${character.class || ''}`;
-
-  const stats = document.createElement('div');
-  stats.className = 'char-sheet-stats';
-  stats.innerHTML = `<div>AC <strong>${character.ac}</strong></div><div>HP <strong>${
-    character.hp.current
-  }/${character.hp.max}</strong></div>`;
-
-  const hpTrack = document.createElement('div');
-  hpTrack.className = 'hp-bar-track';
-  const hpFill = document.createElement('div');
-  const pct = character.hp.max > 0 ? Math.max(0, Math.min(100, (character.hp.current / character.hp.max) * 100)) : 0;
-  hpFill.className = 'hp-bar-fill ' + computeCondition(character.hp);
-  hpFill.style.width = pct + '%';
-  hpTrack.appendChild(hpFill);
-
-  const abilities = document.createElement('div');
-  abilities.className = 'char-sheet-abilities';
-  ABILITY_KEYS.forEach((key) => {
-    const score = character.abilityScores[key];
-    const pill = document.createElement('div');
-    pill.className = 'ability-pill';
-    pill.innerHTML = `${key.toUpperCase()}<span class="val">${score}</span>${abilityMod(score)}`;
-    abilities.appendChild(pill);
-  });
-
-  card.append(name, meta, stats, hpTrack, abilities);
-
-  if (character.notes) {
-    const notes = document.createElement('div');
-    notes.className = 'char-sheet-notes';
-    notes.textContent = character.notes;
-    card.appendChild(notes);
-  }
-
+  let editButtonEl = null;
   if (showEditButton) {
-    const editBtn = document.createElement('button');
-    editBtn.className = 'char-sheet-edit-btn';
-    editBtn.textContent = 'Edit Character Sheet';
-    editBtn.addEventListener('click', () => openCharacterModal(character, 'edit-in-game'));
-    card.appendChild(editBtn);
+    editButtonEl = document.createElement('button');
+    editButtonEl.className = 'char-sheet-edit-btn';
+    editButtonEl.textContent = 'Edit Character Sheet';
+    editButtonEl.addEventListener('click', () => openCharacterModal(character, 'edit-in-game'));
   }
 
-  if (showQuickEdit) {
-    card.appendChild(buildQuickEditControls(username, character));
-  }
+  const card = buildSheetCard({
+    name: character.name,
+    meta: `Level ${character.level} ${character.race ? character.race + ' ' : ''}${character.class || ''}`,
+    stats: [
+      ['AC', character.ac],
+      ['HP', `${character.hp.current}/${character.hp.max}`],
+    ],
+    hp: character.hp,
+    topAbilitiesEl: buildAbilityScoreGrid(character.abilityScores, computeModifiers(character.abilityScores)),
+    notes: character.notes,
+    quickEditEl: showQuickEdit ? buildQuickEditControls(username, character) : null,
+    editButtonEl,
+    sections: [
+      { title: 'Attacks', contentEl: buildAttacksList(character.attacks), count: character.attacks?.length },
+      { title: 'Features', contentEl: buildFeatureList(character.features), count: character.features?.length },
+      { title: 'Spells', contentEl: buildFlatSpellList(character.spells), count: character.spells?.length },
+    ],
+  });
 
   return card;
 }
@@ -94,6 +67,7 @@ function buildQuickEditControls(username, character) {
     },
   });
 }
+
 
 export function renderOwnCharacterView() {
   ownCharacterView.innerHTML = '';
