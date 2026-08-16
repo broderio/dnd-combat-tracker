@@ -1,10 +1,3 @@
-// server/routes/characters.js
-//
-// REST CRUD for player characters, plus the DM's full-roster endpoint.
-// Needs `io` to push live updates to the editing player's own socket and to
-// every connected DM when a character is created/edited (see
-// RosterStore#notifyCharacterUpdated).
-
 import { Router } from 'express';
 
 import { EVENTS } from '../../shared/protocol.js';

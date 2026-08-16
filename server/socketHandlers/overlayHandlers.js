@@ -1,10 +1,3 @@
-// server/socketHandlers/overlayHandlers.js
-//
-// DM-only: place/remove AoE overlays (fire, water, electricity, etc.) on the
-// grid. Overlays are part of the broadcast `state` (like grid/tokens), so no
-// dedicated "overlay-added" event is needed — adding/removing one just
-// triggers a normal full-state re-broadcast, same pattern as GridHandler.
-
 import { EVENTS } from '../../shared/protocol.js';
 import { PermissionPolicy } from '../policy.js';
 

@@ -1,13 +1,3 @@
-// server/socketHandlers/diceHandler.js
-//
-// A simple shared dice roller, available to both the DM and players — rolls
-// are broadcast to everyone (the standard "public dice log" UX for a virtual
-// tabletop), not just the roller, so the table can see checks/damage as they
-// happen. No client-side math is trusted: the server rolls the dice itself
-// (Math.random(), not verifiable/fair in a cryptographic sense, but this is
-// a casual combat tracker, not a competitive-integrity tool) and clamps
-// count/sides/modifier to sane bounds.
-
 import { EVENTS } from '../../shared/protocol.js';
 
 function rollDie(sides) {

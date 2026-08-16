@@ -1,4 +1,3 @@
-// server/socketHandlers/gridHandler.js
 import { EVENTS } from '../../shared/protocol.js';
 import { PermissionPolicy } from '../policy.js';
 

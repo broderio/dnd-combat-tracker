@@ -224,15 +224,11 @@ export class Character {
     this.id = null;
     this.hp = HitPoints.default();
     this.abilityScores = {};
-    // Combat-time status tags, DM-edited (see the DM sidebar quick-edit
-    // controls) — this, plus `hp`, is the single source of truth for a
-    // combatant's state; tokens and the initiative tracker only ever read it.
     this.statusEffects = [];
     for (const key of ABILITY_KEYS) this.abilityScores[key] = 10;
     for (const field of CHARACTER_FIELDS) this[field.key] = field.default;
   }
 
-  /** A brand-new Character with every field at its schema default. */
   static default() {
     return new Character();
   }
@@ -335,21 +331,10 @@ export class MonsterInstance {
     this.source = '';
   }
 
-  /**
-   * A brand-new MonsterInstance with schema defaults.
-   *
-   * This represents the complete shape of a monster. MonsterLibrary is
-   * responsible only for translating its source data into these fields.
-   */
   static default() {
     return new MonsterInstance();
   }
 
-  /**
-   * Deep-enough clone for the nested values owned by a monster definition.
-   * Arrays and their object entries are copied so instances cannot mutate
-   * the library's template data.
-   */
   static clone(existing) {
     const m = Object.assign(new MonsterInstance(), existing);
 
@@ -379,12 +364,6 @@ export class MonsterInstance {
     return m;
   }
 
-  /**
-   * Builds a combat instance from a complete monster definition.
-   *
-   * The complete definition is copied into the instance as a snapshot.
-   * Runtime state (`hp`, `statusEffects`) is initialized independently.
-   */
   static fromTemplate(template) {
     const m = new MonsterInstance();
 
@@ -442,12 +421,6 @@ export class MonsterInstance {
     return m;
   }
 
-  /**
-   * Partial update.
-   *
-   * A monster instance's definition is immutable after placement. Only
-   * combat-time state can be changed.
-   */
   static fromInput(input, existing) {
     const m = MonsterInstance.clone(existing);
 
@@ -468,10 +441,6 @@ export class MonsterInstance {
     return computeCondition(this.hp);
   }
 
-  /**
-   * Returns the complete monster definition in the same shape used by
-   * MonsterLibrary templates, plus the instance's runtime state.
-   */
   toJSON() {
     return {
       id: this.id,
@@ -523,19 +492,6 @@ export class MonsterInstance {
   }
 }
 
-/**
- * A named, saved pre-session encounter: a full snapshot of the board —
- * background, grid, tokens (with position), overlays, turn order, and
- * monster instances — captured verbatim from `GameStateStore#toSnapshotJSON`
- * at save time. Loading an encounter restores that entire snapshot (see
- * `GameStateStore#restoreSnapshot`), replacing whatever's currently on the
- * board, rather than spawning tokens alongside the existing state.
- *
- * `snapshot` is opaque to this class — it's always server-constructed (from
- * live `GameStateStore` state), never typed by hand on the client, so it's
- * stored as-is rather than field-validated the way `Character`'s input is.
- * Only `name` is genuinely user input here.
- */
 export class Encounter {
   constructor() {
     this.id = null;
@@ -553,11 +509,6 @@ export class Encounter {
     return e;
   }
 
-  /**
-   * Merge + validate a partial Encounter payload. `name` is sanitized like
-   * any other text field; `snapshot` (if provided) fully replaces the
-   * existing one — there's no partial snapshot update.
-   */
   static fromInput(input, existing) {
     const e = existing ? Encounter.clone(existing) : new Encounter();
     if (input.name !== undefined) {
@@ -575,19 +526,16 @@ export class Encounter {
   }
 }
 
-/** The board's grid configuration. */
 export class Grid {
   constructor() {
     this.visible = true;
     for (const field of GRID_FIELDS) this[field.key] = field.default;
   }
 
-  /** Board grid defaults. */
   static default() {
     return new Grid();
   }
 
-  /** Validate a partial Grid payload against the existing grid. */
   static fromInput(input, existing) {
     const g = Object.assign(new Grid(), existing);
     for (const field of GRID_FIELDS) {
@@ -606,15 +554,6 @@ export class Grid {
   }
 }
 
-/**
- * A token on the board: a read-only projection of its position plus a
- * reference (`combatantId`) to the Character (or, from Phase 2, monster
- * instance) it displays. It never stores its own HP/status — those are
- * looked up from the source record (see `computeCondition` and
- * GameStateStore#getState's `combatantStatuses`). Overlays are a purely
- * visual/organizational tool (see OVERLAY_TYPES) — a token's cell falling
- * inside one has no automatic effect on the token.
- */
 export class Token {
   constructor() {
     this.id = null;
@@ -629,13 +568,6 @@ export class Token {
     return Object.assign(new Token(), existing);
   }
 
-  /**
-   * Validate a Token payload. `grid` is the current board grid, used to clamp
-   * `col`/`row` into bounds. `existing` is the current token when this is a
-   * partial update (e.g. the DM renaming/recoloring it) — every field is
-   * independently optional in `input`, mirroring `Character.fromInput`. `id`
-   * is assigned by the caller (GameStateStore), never from `input`.
-   */
   static fromInput(input, grid, existing) {
     const t = existing ? Token.clone(existing) : new Token();
 
@@ -665,7 +597,6 @@ export class Token {
   }
 }
 
-/** An area-of-effect overlay (fire, water, electricity, etc.) placed on the grid. */
 export class Overlay {
   constructor() {
     this.id = null;
@@ -678,11 +609,6 @@ export class Overlay {
     return new Overlay();
   }
 
-  /**
-   * Validate a new Overlay payload. `grid` clamps `col`/`row` into bounds,
-   * same as `Token.fromInput`. Overlays are always created fresh (no
-   * partial-update use case in this app), so there's no `existing` parameter.
-   */
   static fromInput(input, grid) {
     const o = new Overlay();
     if (OVERLAY_TYPES[input.type]) o.type = input.type;
@@ -712,7 +638,6 @@ export class Overlay {
   }
 }
 
-/** The initiative/turn-order tracker. */
 export class TurnOrder {
   constructor() {
     this.combatants = [];
@@ -720,18 +645,10 @@ export class TurnOrder {
     this.round = 0;
   }
 
-  /** Turn-order defaults: nobody in the initiative order yet. */
   static default() {
     return new TurnOrder();
   }
 
-  /**
-   * Validate a full replacement of the initiative order. `entries` is
-   * `[{ tokenId, initiative }, ...]`; only entries referencing a token that
-   * still exists on `tokens` are kept, sorted by initiative descending (ties
-   * keep their given order, i.e. a stable sort). Resets `currentIndex`/
-   * `round` since the order itself just changed.
-   */
   static fromEntries(entries, tokens) {
     const list = Array.isArray(entries) ? entries : [];
     const combatants = list
@@ -748,7 +665,6 @@ export class TurnOrder {
     return order;
   }
 
-  /** Advances to the next combatant, wrapping around and incrementing `round`. */
   advance() {
     if (this.combatants.length === 0) return;
     this.currentIndex += 1;
@@ -758,7 +674,6 @@ export class TurnOrder {
     }
   }
 
-  /** Removes a combatant (e.g. after its token is deleted), fixing up `currentIndex`/`round`. */
   removeCombatant(tokenId) {
     const idx = this.combatants.findIndex((c) => c.tokenId === tokenId);
     if (idx === -1) return;
@@ -771,7 +686,6 @@ export class TurnOrder {
     }
   }
 
-  /** The tokenId whose turn it currently is, or null if there's no active encounter. */
   currentCombatantTokenId() {
     if (this.currentIndex < 0) return null;
     return this.combatants[this.currentIndex]?.tokenId ?? null;

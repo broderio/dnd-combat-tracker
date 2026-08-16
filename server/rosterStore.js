@@ -1,11 +1,3 @@
-// server/rosterStore.js
-//
-// Owns `activePlayers`: everyone currently connected as a player (socket.id ->
-// { username, character }). Both the REST character routes and the socket
-// handlers need to read/mutate this and trigger the two broadcasts below, so
-// it lives in its own class (instantiated once, see the `rosterStore`
-// singleton at the bottom) rather than as a variable server.js used to own.
-
 import { EVENTS } from '../shared/protocol.js';
 
 export class RosterStore {

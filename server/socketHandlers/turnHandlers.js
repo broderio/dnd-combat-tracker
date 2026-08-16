@@ -1,10 +1,3 @@
-// server/socketHandlers/turnHandlers.js
-//
-// DM-only: manage the initiative/turn-order tracker. Like grid/tokens, the
-// turn order is part of the broadcast `state`, so both events just mutate
-// gameState and re-broadcast the full state — every client (DM and players)
-// renders the same "whose turn is it" banner from that.
-
 import { EVENTS } from '../../shared/protocol.js';
 import { PermissionPolicy } from '../policy.js';
 

@@ -1,13 +1,3 @@
-// server/routes/encounters.js
-//
-// REST CRUD for saved encounters (Phase 3) — a saved encounter is a full
-// snapshot of the live board (background, grid, tokens + positions,
-// overlays, turn order, monster instances), captured via
-// `GameStateStore#toSnapshotJSON` and restored verbatim via
-// `GameStateStore#restoreSnapshot`. There is no client-supplied snapshot
-// content — `name` is the only thing a request body actually contributes;
-// the snapshot itself always comes from the server's own live state.
-
 import { Router } from 'express';
 
 import { EVENTS } from '../../shared/protocol.js';
@@ -36,12 +26,6 @@ export class EncountersController {
     res.json({ ok: true, encounter: encounter.toJSON(), encounters: this.db.getEncounters() });
   }
 
-  /**
-   * Renames an existing encounter, and — if `req.body.resnapshot` is
-   * truthy — overwrites its saved snapshot with the current live board
-   * state too (an explicit "update this save" action, distinct from just
-   * renaming it).
-   */
   update(req, res) {
     const payload = { name: req.body.name };
     if (req.body.resnapshot) payload.snapshot = this.gameState.toSnapshotJSON();
@@ -55,14 +39,6 @@ export class EncountersController {
     res.json({ ok: true, encounters: this.db.getEncounters() });
   }
 
-  /**
-   * Replaces the ENTIRE live board with this encounter's saved snapshot
-   * (see `GameStateStore#restoreSnapshot`) — background, grid, tokens +
-   * positions, overlays, turn order, and monster instances all get
-   * overwritten. Broadcasts the resulting `state` to everyone and pushes
-   * real monster instance stats to DM sockets, same as any other
-   * board-mutating action.
-   */
   load(req, res) {
     const encounter = this.db.getEncounter(req.params.id);
     if (!encounter) return res.status(404).json({ ok: false, error: 'Encounter not found.' });

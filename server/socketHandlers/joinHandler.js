@@ -1,9 +1,3 @@
-// server/socketHandlers/joinHandler.js
-//
-// Handles the 'join' event (initial join AND client-driven reconnect rejoin)
-// and 'disconnect'. Populates `session` (shared with the other handler
-// classes for this socket) and keeps the roster/presence broadcasts in sync.
-
 import { EVENTS } from '../../shared/protocol.js';
 
 export class JoinHandler {

@@ -9,27 +9,15 @@ export class GameStateStore {
     this.#loadFromSnapshot(this.db.loadBoardState());
   }
 
-  /**
-   * Populates every piece of board state from a persisted/saved-encounter
-   * snapshot (same shape either way — see `toSnapshotJSON`), falling back to
-   * schema defaults for anything missing. Shared by the constructor (loading
-   * from data/db.json) and `restoreSnapshot` (loading a saved encounter) so
-   * there's exactly one place that knows how to turn a snapshot object back
-   * into live state.
-   */
   #loadFromSnapshot(persisted) {
     this.background = persisted?.background ?? null; // e.g. "/uploads/map.png"
     this.grid = persisted?.grid ? Object.assign(new Grid(), persisted.grid) : Grid.default();
 
-    // tokens[id] = Token — owner === null means it's DM-controlled
-    // (monster/NPC), otherwise it's a player username. statusEffects are
-    // DM-set conditions on the linked combatant, not the token itself.
     this.tokens = {};
     for (const [id, t] of Object.entries(persisted?.tokens ?? {})) {
       this.tokens[id] = Token.clone(t);
     }
 
-    // overlays[id] = Overlay
     this.overlays = {};
     for (const [id, o] of Object.entries(persisted?.overlays ?? {})) {
       this.overlays[id] = Object.assign(new Overlay(), o);
@@ -51,12 +39,6 @@ export class GameStateStore {
     this.db.saveBoardState(this.toSnapshotJSON());
   }
 
-  /**
-   * The exact shape persisted to data/db.json's `board` key, and also what a
-   * saved Encounter's `snapshot` is (see shared/schema.js's `Encounter` and
-   * server/routes/encounters.js) — everything needed to fully reconstruct
-   * this store's state later via `#loadFromSnapshot`/`restoreSnapshot`.
-   */
   toSnapshotJSON() {
     return {
       background: this.background,
@@ -102,15 +84,6 @@ export class GameStateStore {
     }
   }
 
-  /**
-   * Recomputed fresh on every `getState()` call (cheap at this app's scale)
-   * rather than cached, so it's always consistent with whatever the source
-   * record currently says — no separate invalidation path to get wrong.
-   * Looks a linked token's `combatantId` up in whichever store its
-   * `combatantType` says (a Character via db.findCharacter, or a
-   * MonsterInstance via this.monsterInstances) — one redaction choke point
-   * for both combatant kinds, per the single-source-of-truth design.
-   */
   #computeCombatantStatuses() {
     const statuses = {};
     for (const token of Object.values(this.tokens)) {
@@ -160,9 +133,6 @@ export class GameStateStore {
     const token = this.tokens[id];
     delete this.tokens[id];
     this.turnOrder.removeCombatant(id);
-    // A monster instance only exists to back one placed token — unlike a
-    // Character (which persists independently in data/db.json across
-    // placements/sessions), so remove it too rather than leaking orphans.
     if (token?.combatantType === 'monster' && token.combatantId) {
       delete this.monsterInstances[token.combatantId];
     }
@@ -173,12 +143,6 @@ export class GameStateStore {
     return this.tokens[id];
   }
 
-  /**
-   * Moves a token, clamping to the current grid bounds. If the destination
-   * cell is already occupied by a different token, snaps to the nearest free
-   * cell instead of overlapping (see #findNearestFreeCell). Returns the
-   * updated token, or null if it doesn't exist.
-   */
   moveToken(id, col, row) {
     const token = this.tokens[id];
     if (!token) return null;
@@ -234,12 +198,6 @@ export class GameStateStore {
     return updated;
   }
 
-  /**
-   * Expanding-ring search outward from (col, row), returning the closest
-   * (Euclidean distance) unoccupied in-bounds cell, or null if the whole
-   * board is full. Ring `radius` r checks the square perimeter at Chebyshev
-   * distance r, so smaller radii (already-checked ones) aren't re-scanned.
-   */
   #findNearestFreeCell(col, row, excludeTokenId) {
     const maxRadius = Math.max(this.grid.cols, this.grid.rows);
     for (let radius = 1; radius <= maxRadius; radius++) {
@@ -264,8 +222,6 @@ export class GameStateStore {
     return null;
   }
 
-  // ---------------- Overlays (area-of-effect) ----------------
-
   addOverlay(input) {
     const id = 'ovl_' + this.nextOverlayId++;
     const overlay = Overlay.fromInput(input, this.grid);
@@ -279,8 +235,6 @@ export class GameStateStore {
     delete this.overlays[id];
     this.#persist();
   }
-
-  // ---------------- Turn order / initiative ----------------
 
   setTurnOrder(combatants) {
     this.turnOrder = TurnOrder.fromEntries(combatants, this.tokens);

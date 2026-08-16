@@ -1,9 +1,3 @@
-// server/routes/auth.js
-//
-// Deliberately lightweight (no hashing, no sessions/cookies) per the stated
-// requirements: usernames must be unique, PIN is just a shared-secret
-// convenience, not real security.
-
 import { Router } from 'express';
 
 export class AuthController {

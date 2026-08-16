@@ -1,9 +1,3 @@
-// server/routes/background.js
-//
-// Handles the DM's map-image upload and broadcasts the new board state to
-// everyone. Kept separate from characters.js/auth.js since it deals with
-// file storage (multer) rather than the JSON db.
-
 import { Router } from 'express';
 import multer from 'multer';
 import path from 'path';

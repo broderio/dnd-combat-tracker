@@ -1,19 +1,10 @@
-// public/js/views/overlayPanelView.js
-//
-// DM-only: create and manage AoE overlays (fire, water, electricity, etc.).
-// The DM picks a type/shape/radius/label, then "arms" placement and clicks a
-// cell on the board to drop it there — coordinated with boardView.js purely
-// through the shared `boardTool` flag in state.js (boardView just renders
-// whatever's in `board.overlays`; this module decides when a board click
-// means "place an overlay here").
-
 import { OVERLAY_TYPES } from '/shared/schema.js';
 import { EVENTS } from '/shared/protocol.js';
 
 import { socketClient } from '../socketClient.js';
 import { clientState } from '../state.js';
 
-import { cellFromEvent, getBoardElement } from './boardView.js';
+import { cellFromEvent, getBoardElement, disableDragging, enableDragging } from './boardView.js';
 
 const overlayTypeSelect = document.getElementById('overlay-type');
 const overlayShapeSelect = document.getElementById('overlay-shape');
@@ -22,8 +13,6 @@ const overlayLabelInput = document.getElementById('overlay-label');
 const placeOverlayBtn = document.getElementById('place-overlay-btn');
 const overlayList = document.getElementById('overlay-list');
 
-// Populate the type <select> once, from the schema's OVERLAY_TYPES map —
-// adding a new overlay type there is enough for it to show up here too.
 Object.entries(OVERLAY_TYPES).forEach(([key, meta]) => {
   const opt = document.createElement('option');
   opt.value = key;
@@ -48,6 +37,7 @@ placeOverlayBtn.addEventListener('click', () => {
   });
   placeOverlayBtn.textContent = 'Click the grid to place… (click again to cancel)';
   placeOverlayBtn.classList.add('active');
+  disableDragging();
 });
 
 getBoardElement().addEventListener('click', (e) => {
@@ -61,6 +51,7 @@ function disarm() {
   clientState.setBoardTool({ type: 'none' });
   placeOverlayBtn.textContent = 'Place on Grid';
   placeOverlayBtn.classList.remove('active');
+  enableDragging();
 }
 
 /** The DM's overlay list (with Remove buttons) — a no-op for players. */
