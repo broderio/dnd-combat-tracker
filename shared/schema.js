@@ -19,7 +19,7 @@
 // `require`, no `fs`, no `path`) so it works unmodified in both environments.
 
 /** Ability score keys, in the conventional D&D order. */
-export const ABILITY_KEYS = ["str", "dex", "con", "int", "wis", "cha"];
+export const ABILITY_KEYS = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
 
 /**
  * Declarative list of the simple (non-nested) Character fields.
@@ -31,24 +31,24 @@ export const ABILITY_KEYS = ["str", "dex", "con", "int", "wis", "cha"];
  */
 export const CHARACTER_FIELDS = [
   {
-    key: "name",
-    kind: "text",
-    label: "Name",
+    key: 'name',
+    kind: 'text',
+    label: 'Name',
     maxLength: 60,
-    default: "New Character",
-    emptyFallback: "Unnamed",
+    default: 'New Character',
+    emptyFallback: 'Unnamed',
   },
-  { key: "class", kind: "text", label: "Class", maxLength: 40, default: "" },
-  { key: "race", kind: "text", label: "Race", maxLength: 40, default: "" },
-  { key: "level", kind: "int", label: "Level", min: 1, max: 20, default: 1 },
-  { key: "ac", kind: "int", label: "Armor Class", min: 0, max: 40, default: 10 },
-  { key: "notes", kind: "text", label: "Notes", maxLength: 2000, default: "" },
+  { key: 'class', kind: 'text', label: 'Class', maxLength: 40, default: '' },
+  { key: 'race', kind: 'text', label: 'Race', maxLength: 40, default: '' },
+  { key: 'level', kind: 'int', label: 'Level', min: 1, max: 20, default: 1 },
+  { key: 'ac', kind: 'int', label: 'Armor Class', min: 0, max: 40, default: 10 },
+  { key: 'notes', kind: 'text', label: 'Notes', maxLength: 2000, default: '' },
   {
-    key: "tokenColor",
-    kind: "color",
-    label: "Token Color",
+    key: 'tokenColor',
+    kind: 'color',
+    label: 'Token Color',
     maxLength: 7,
-    default: "#e63946",
+    default: '#e63946',
   },
 ];
 
@@ -62,33 +62,33 @@ export const CHARACTER_FIELDS = [
 
 /** Fields inside `character.hp`, each an int clamped to [min, max]. */
 export const HP_FIELDS = [
-  { key: "current", label: "HP (current)", min: -9999, max: 9999, default: 10 },
-  { key: "max", label: "HP (max)", min: 0, max: 9999, default: 10 },
+  { key: 'current', label: 'HP (current)', min: -9999, max: 9999, default: 10 },
+  { key: 'max', label: 'HP (max)', min: 0, max: 9999, default: 10 },
 ];
 
 /** Fields inside `grid`. */
 export const GRID_FIELDS = [
-  { key: "cols", label: "Columns", min: 1, max: 100, default: 20 },
-  { key: "rows", label: "Rows", min: 1, max: 100, default: 15 },
-  { key: "cellSize", label: "Cell size (px)", min: 10, max: 200, default: 40 },
+  { key: 'cols', label: 'Columns', min: 1, max: 100, default: 20 },
+  { key: 'rows', label: 'Rows', min: 1, max: 100, default: 15 },
+  { key: 'cellSize', label: 'Cell size (px)', min: 10, max: 200, default: 40 },
 ];
 
 /** Fields inside `token`. */
 export const TOKEN_FIELDS = [
-  { key: "name", kind: "text", label: "Name", maxLength: 40, default: "Token" },
+  { key: 'name', kind: 'text', label: 'Name', maxLength: 40, default: 'Token' },
   {
-    key: "color",
-    kind: "color",
-    label: "Color",
+    key: 'color',
+    kind: 'color',
+    label: 'Color',
     maxLength: 7,
-    default: "#e63946",
+    default: '#e63946',
   },
-  { key: "col", kind: "int", label: "Column", min: 0, max: 99, default: 0 },
-  { key: "row", kind: "int", label: "Row", min: 0, max: 99, default: 0 },
+  { key: 'col', kind: 'int', label: 'Column', min: 0, max: 99, default: 0 },
+  { key: 'row', kind: 'int', label: 'Row', min: 0, max: 99, default: 0 },
   {
-    key: "owner",
-    kind: "text",
-    label: "Owner username",
+    key: 'owner',
+    kind: 'text',
+    label: 'Owner username',
     maxLength: 40,
     default: null,
   },
@@ -99,9 +99,9 @@ export const TOKEN_FIELDS = [
     // for how the board derives bloodied/status display from the source
     // record instead. null for a bare DM-controlled token with no linked
     // combatant record.
-    key: "combatantId",
-    kind: "text",
-    label: "Linked combatant id",
+    key: 'combatantId',
+    kind: 'text',
+    label: 'Linked combatant id',
     maxLength: 40,
     default: null,
   },
@@ -110,9 +110,9 @@ export const TOKEN_FIELDS = [
     // player's saved Character, via server/db.js) or 'monster' (a
     // MonsterInstance placed from the Phase 2 monster library, via
     // GameStateStore#monsterInstances). null alongside a null combatantId.
-    key: "combatantType",
-    kind: "text",
-    label: "Linked combatant type",
+    key: 'combatantType',
+    kind: 'text',
+    label: 'Linked combatant type',
     maxLength: 20,
     default: null,
   },
@@ -125,10 +125,10 @@ export const TOKEN_FIELDS = [
  * computation — see the redacted-broadcast note in ARCHITECTURE.md.
  */
 export function computeCondition(hp) {
-  if (!hp || hp.max <= 0) return "healthy";
-  if (hp.current <= 0) return "critical";
-  if (hp.current / hp.max <= 0.5) return "bloodied";
-  return "healthy";
+  if (!hp || hp.max <= 0) return 'healthy';
+  if (hp.current <= 0) return 'critical';
+  if (hp.current / hp.max <= 0.5) return 'bloodied';
+  return 'healthy';
 }
 
 /**
@@ -139,87 +139,87 @@ export function computeCondition(hp) {
  */
 export const STATUS_EFFECTS = {
   blinded: {
-    icon: "visibility_off",
-    background: "#1c1c1c",
-    color: "#f5f5f5",
+    icon: 'visibility_off',
+    background: '#1c1c1c',
+    color: '#f5f5f5',
   },
 
   charmed: {
-    icon: "favorite",
-    background: "#8e2a72",
-    color: "#ffd6f3",
+    icon: 'favorite',
+    background: '#8e2a72',
+    color: '#ffd6f3',
   },
 
   deafened: {
-    icon: "hearing_disabled",
-    background: "#4a3270",
-    color: "#e6d8ff",
+    icon: 'hearing_disabled',
+    background: '#4a3270',
+    color: '#e6d8ff',
   },
 
   frightened: {
-    icon: "sentiment_very_dissatisfied",
-    background: "#6b4f1d",
-    color: "#ffe082",
+    icon: 'sentiment_very_dissatisfied',
+    background: '#6b4f1d',
+    color: '#ffe082',
   },
 
   grappled: {
-    icon: "front_hand",
-    background: "#8a4b16",
-    color: "#ffe0b2",
+    icon: 'front_hand',
+    background: '#8a4b16',
+    color: '#ffe0b2',
   },
 
   incapacitated: {
-    icon: "block",
-    background: "#424242",
-    color: "#eeeeee",
+    icon: 'block',
+    background: '#424242',
+    color: '#eeeeee',
   },
 
   invisible: {
-    icon: "visibility",
-    background: "#176b87",
-    color: "#b8f0ff",
+    icon: 'visibility',
+    background: '#176b87',
+    color: '#b8f0ff',
   },
 
   paralyzed: {
-    icon: "accessibility_new",
-    background: "#b8860b",
-    color: "#fff8d6",
+    icon: 'accessibility_new',
+    background: '#b8860b',
+    color: '#fff8d6',
   },
 
   petrified: {
-    icon: "landscape",
-    background: "#696969",
-    color: "#f1f1f1",
+    icon: 'landscape',
+    background: '#696969',
+    color: '#f1f1f1',
   },
 
   poisoned: {
-    icon: "science",
-    background: "#397a24",
-    color: "#dfffcc",
+    icon: 'science',
+    background: '#397a24',
+    color: '#dfffcc',
   },
 
   prone: {
-    icon: "airline_seat_flat",
-    background: "#5a4632",
-    color: "#ffe0b2",
+    icon: 'airline_seat_flat',
+    background: '#5a4632',
+    color: '#ffe0b2',
   },
 
   restrained: {
-    icon: "link",
-    background: "#8b2f2f",
-    color: "#ffd0d0",
+    icon: 'link',
+    background: '#8b2f2f',
+    color: '#ffd0d0',
   },
 
   stunned: {
-    icon: "bolt",
-    background: "#b05a00",
-    color: "#fff0c2",
+    icon: 'bolt',
+    background: '#b05a00',
+    color: '#fff0c2',
   },
 
   unconscious: {
-    icon: "bed",
-    background: "#263238",
-    color: "#d1b3e8",
+    icon: 'bed',
+    background: '#263238',
+    color: '#d1b3e8',
   },
 };
 
@@ -230,22 +230,22 @@ export const STATUS_EFFECTS = {
  * still applies status effects manually via the quick-edit controls.
  */
 export const OVERLAY_TYPES = {
-  fire: { label: "Fire", color: "#e0703f" },
-  water: { label: "Water", color: "#3f7fe0" },
-  electric: { label: "Electricity", color: "#e0d63f" },
-  poison: { label: "Poison", color: "#5c7a4f" },
-  generic: { label: "Generic", color: "#9c9c9c" },
+  fire: { label: 'Fire', color: '#e0703f' },
+  water: { label: 'Water', color: '#3f7fe0' },
+  electric: { label: 'Electricity', color: '#e0d63f' },
+  poison: { label: 'Poison', color: '#5c7a4f' },
+  generic: { label: 'Generic', color: '#9c9c9c' },
 };
 
 /** Shapes supported for an overlay, centered on `col`/`row`. */
-export const OVERLAY_SHAPES = ["circle", "square"];
+export const OVERLAY_SHAPES = ['circle', 'square'];
 
 /** Fields inside `overlay`. */
 export const OVERLAY_FIELDS = [
-  { key: "col", kind: "int", label: "Column", min: 0, max: 99, default: 0 },
-  { key: "row", kind: "int", label: "Row", min: 0, max: 99, default: 0 },
-  { key: "radius", kind: "int", label: "Radius (cells)", min: 1, max: 30, default: 2 },
-  { key: "label", kind: "text", label: "Label", maxLength: 40, default: "" },
+  { key: 'col', kind: 'int', label: 'Column', min: 0, max: 99, default: 0 },
+  { key: 'row', kind: 'int', label: 'Row', min: 0, max: 99, default: 0 },
+  { key: 'radius', kind: 'int', label: 'Radius (cells)', min: 1, max: 30, default: 2 },
+  { key: 'label', kind: 'text', label: 'Label', maxLength: 40, default: '' },
 ];
 
 /**
@@ -344,7 +344,7 @@ export class Character {
 
     for (const field of CHARACTER_FIELDS) {
       if (input[field.key] === undefined) continue;
-      if (field.kind === "int") {
+      if (field.kind === 'int') {
         c[field.key] = Validators.clampInt(input[field.key], field.min, field.max, c[field.key]);
       } else {
         const str = String(input[field.key]).trim().slice(0, field.maxLength);
@@ -414,16 +414,16 @@ export class MonsterInstance {
   constructor() {
     this.id = null;
     this.templateId = null;
-    this.name = "Monster";
+    this.name = 'Monster';
     this.ac = null;
     this.hp = HitPoints.default();
     this.statusEffects = [];
-    this.speed = "";
+    this.speed = '';
     this.cr = null;
-    this.type = "";
-    this.size = "";
+    this.type = '';
+    this.size = '';
     this.attacks = []; // [{ name, toHit, damage, damageType, desc }]
-    this.source = "";
+    this.source = '';
   }
 
   /**
@@ -438,12 +438,12 @@ export class MonsterInstance {
     m.name = template.name;
     m.ac = template.ac;
     m.hp = new HitPoints(template.hpMax ?? 10, template.hpMax ?? 10);
-    m.speed = template.speed || "";
+    m.speed = template.speed || '';
     m.cr = template.cr ?? null;
-    m.type = template.type || "";
-    m.size = template.size || "";
+    m.type = template.type || '';
+    m.size = template.size || '';
     m.attacks = template.attacks || [];
-    m.source = template.source || "";
+    m.source = template.source || '';
     return m;
   }
 
@@ -509,7 +509,7 @@ export class MonsterInstance {
 export class Encounter {
   constructor() {
     this.id = null;
-    this.name = "New Encounter";
+    this.name = 'New Encounter';
     this.snapshot = null;
   }
 
@@ -532,7 +532,7 @@ export class Encounter {
     const e = existing ? Encounter.clone(existing) : new Encounter();
     if (input.name !== undefined) {
       const str = String(input.name).trim().slice(0, 60);
-      e.name = str || "Unnamed Encounter";
+      e.name = str || 'Unnamed Encounter';
     }
     if (input.snapshot !== undefined) {
       e.snapshot = input.snapshot;
@@ -611,9 +611,9 @@ export class Token {
 
     for (const field of TOKEN_FIELDS) {
       if (input[field.key] === undefined) continue;
-      if (field.kind === "int") {
+      if (field.kind === 'int') {
         t[field.key] = Validators.clampInt(input[field.key], field.min, field.max, t[field.key]);
-      } else if (field.kind === "color") {
+      } else if (field.kind === 'color') {
         t[field.key] = input[field.key] || field.default;
       } else {
         t[field.key] = String(input[field.key]).trim().slice(0, field.maxLength) || field.default;
@@ -639,8 +639,8 @@ export class Token {
 export class Overlay {
   constructor() {
     this.id = null;
-    this.type = "generic";
-    this.shape = "circle";
+    this.type = 'generic';
+    this.shape = 'circle';
     for (const field of OVERLAY_FIELDS) this[field.key] = field.default;
   }
 
@@ -660,7 +660,7 @@ export class Overlay {
 
     for (const field of OVERLAY_FIELDS) {
       if (input[field.key] === undefined) continue;
-      if (field.kind === "int") {
+      if (field.kind === 'int') {
         o[field.key] = Validators.clampInt(input[field.key], field.min, field.max, o[field.key]);
       } else {
         o[field.key] = String(input[field.key]).trim().slice(0, field.maxLength);

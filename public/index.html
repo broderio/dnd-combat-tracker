@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Combat Tracker</title>
     <link rel="stylesheet" href="style.css" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:FILL@1">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:FILL@1" />
   </head>
   <body>
     <!-- Step 1: mode + login -->
@@ -232,8 +232,12 @@
             <h2>Monster Library</h2>
             <div class="token-controls">
               <label>Name <input id="monster-search-name" type="text" placeholder="Goblin" maxlength="60" /></label>
-              <label>CR min <input id="monster-search-cr-min" type="number" min="0" step="0.125" style="width: 4.5em" /></label>
-              <label>CR max <input id="monster-search-cr-max" type="number" min="0" step="0.125" style="width: 4.5em" /></label>
+              <label
+                >CR min <input id="monster-search-cr-min" type="number" min="0" step="0.125" style="width: 4.5em"
+              /></label>
+              <label
+                >CR max <input id="monster-search-cr-max" type="number" min="0" step="0.125" style="width: 4.5em"
+              /></label>
               <button id="monster-search-btn" class="secondary-btn">Search</button>
             </div>
             <div class="token-controls">
@@ -277,18 +281,20 @@
                 </select>
               </label>
               <label>Radius (cells) <input id="overlay-radius" type="number" min="1" max="30" value="2" /></label>
-              <label>Label (optional) <input id="overlay-label" type="text" maxlength="40" placeholder="e.g. Fireball" /></label>
+              <label
+                >Label (optional) <input id="overlay-label" type="text" maxlength="40" placeholder="e.g. Fireball"
+              /></label>
               <button id="place-overlay-btn" class="toggle-btn">Place on Grid</button>
             </div>
             <ul id="overlay-list"></ul>
           </div>
         </aside>
 
-
         <main id="board-wrap">
           <div id="board-toolbar">
             <button id="measure-line-btn" class="toggle-btn"><i class="material-icons">square_foot</i></button>
             <button id="measure-radius-btn" class="toggle-btn"><i class="material-icons">adjust</i></button>
+            <button id="measure-square-btn" class="toggle-btn"><i class="material-icons">crop_square</i></button>
           </div>
           <div id="board">
             <div id="background-layer"></div>

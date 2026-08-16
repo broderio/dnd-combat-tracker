@@ -1,23 +1,13 @@
-// public/js/views/characterSheetView.js
-//
-// Right-hand sidebar: for a player, their own character sheet; for the DM,
-// every online player's full sheet plus inline combat-time quick-edit
-// controls (current HP +/-, status effect toggles). This is deliberately a
-// lighter-weight editing surface than the full "Edit Character Sheet" modal
-// (class/level/abilities/etc.) — see ARCHITECTURE.md's "Single source of
-// truth" section. Both share the same card layout (buildCharacterCard), just
-// with the edit button and quick-edit controls toggled on/off.
+import { ABILITY_KEYS } from '/shared/schema.js';
+import { buildQuickEditControls as sharedBuildQuickEditControls } from './quickEditControls.js';
 
-import { ABILITY_KEYS } from "/shared/schema.js";
-import { buildQuickEditControls as sharedBuildQuickEditControls } from "./quickEditControls.js";
+import { ApiClient } from '../api.js';
+import { clientState } from '../state.js';
 
-import { ApiClient } from "../api.js";
-import { clientState } from "../state.js";
+import { openCharacterModal } from './characterModalView.js';
 
-import { openCharacterModal } from "./characterModalView.js";
-
-const ownCharacterView = document.getElementById("own-character-view");
-const allCharactersView = document.getElementById("all-characters-view");
+const ownCharacterView = document.getElementById('own-character-view');
+const allCharactersView = document.getElementById('all-characters-view');
 
 function abilityMod(score) {
   const mod = Math.floor((score - 10) / 2);
@@ -25,45 +15,45 @@ function abilityMod(score) {
 }
 
 function hpBarClass(current, max) {
-  if (max <= 0) return "";
+  if (max <= 0) return '';
   const pct = current / max;
-  if (pct <= 0.25) return "critical";
-  if (pct <= 0.5) return "hurt";
-  return "";
+  if (pct <= 0.25) return 'critical';
+  if (pct <= 0.5) return 'hurt';
+  return '';
 }
 
 function buildCharacterCard(character, { showEditButton, showQuickEdit, username }) {
-  const card = document.createElement("div");
-  card.className = "char-sheet-card";
+  const card = document.createElement('div');
+  card.className = 'char-sheet-card';
 
-  const name = document.createElement("div");
-  name.className = "char-sheet-name";
+  const name = document.createElement('div');
+  name.className = 'char-sheet-name';
   name.textContent = character.name;
 
-  const meta = document.createElement("div");
-  meta.className = "char-sheet-meta";
-  meta.textContent = `Level ${character.level} ${character.race ? character.race + " " : ""}${character.class || ""}`;
+  const meta = document.createElement('div');
+  meta.className = 'char-sheet-meta';
+  meta.textContent = `Level ${character.level} ${character.race ? character.race + ' ' : ''}${character.class || ''}`;
 
-  const stats = document.createElement("div");
-  stats.className = "char-sheet-stats";
+  const stats = document.createElement('div');
+  stats.className = 'char-sheet-stats';
   stats.innerHTML = `<div>AC <strong>${character.ac}</strong></div><div>HP <strong>${
     character.hp.current
   }/${character.hp.max}</strong></div>`;
 
-  const hpTrack = document.createElement("div");
-  hpTrack.className = "hp-bar-track";
-  const hpFill = document.createElement("div");
+  const hpTrack = document.createElement('div');
+  hpTrack.className = 'hp-bar-track';
+  const hpFill = document.createElement('div');
   const pct = character.hp.max > 0 ? Math.max(0, Math.min(100, (character.hp.current / character.hp.max) * 100)) : 0;
-  hpFill.className = "hp-bar-fill " + hpBarClass(character.hp.current, character.hp.max);
-  hpFill.style.width = pct + "%";
+  hpFill.className = 'hp-bar-fill ' + hpBarClass(character.hp.current, character.hp.max);
+  hpFill.style.width = pct + '%';
   hpTrack.appendChild(hpFill);
 
-  const abilities = document.createElement("div");
-  abilities.className = "char-sheet-abilities";
+  const abilities = document.createElement('div');
+  abilities.className = 'char-sheet-abilities';
   ABILITY_KEYS.forEach((key) => {
     const score = character.abilityScores[key];
-    const pill = document.createElement("div");
-    pill.className = "ability-pill";
+    const pill = document.createElement('div');
+    pill.className = 'ability-pill';
     pill.innerHTML = `${key.toUpperCase()}<span class="val">${score}</span>${abilityMod(score)}`;
     abilities.appendChild(pill);
   });
@@ -71,17 +61,17 @@ function buildCharacterCard(character, { showEditButton, showQuickEdit, username
   card.append(name, meta, stats, hpTrack, abilities);
 
   if (character.notes) {
-    const notes = document.createElement("div");
-    notes.className = "char-sheet-notes";
+    const notes = document.createElement('div');
+    notes.className = 'char-sheet-notes';
     notes.textContent = character.notes;
     card.appendChild(notes);
   }
 
   if (showEditButton) {
-    const editBtn = document.createElement("button");
-    editBtn.className = "char-sheet-edit-btn";
-    editBtn.textContent = "Edit Character Sheet";
-    editBtn.addEventListener("click", () => openCharacterModal(character, "edit-in-game"));
+    const editBtn = document.createElement('button');
+    editBtn.className = 'char-sheet-edit-btn';
+    editBtn.textContent = 'Edit Character Sheet';
+    editBtn.addEventListener('click', () => openCharacterModal(character, 'edit-in-game'));
     card.appendChild(editBtn);
   }
 
@@ -92,15 +82,6 @@ function buildCharacterCard(character, { showEditButton, showQuickEdit, username
   return card;
 }
 
-/**
- * DM combat-time quick-edit: current HP +/- and status effect toggles,
- * saved via the existing character PUT (same partial-update path a player's
- * own sheet edit uses) — this is the single choke point that then triggers
- * the redacted board rebroadcast (see server/routes/characters.js), so any
- * token linked to this character updates its bloodied glow/status icons for
- * everyone automatically. Deliberately does not expose class/level/
- * abilities/etc. — that's the full sheet modal's job, not this one's.
- */
 function buildQuickEditControls(username, character) {
   return sharedBuildQuickEditControls(character.hp, character.statusEffects, {
     onAdjustHp: (delta) => {
@@ -123,24 +104,24 @@ function buildQuickEditControls(username, character) {
 }
 
 export function renderOwnCharacterView() {
-  ownCharacterView.innerHTML = "";
+  ownCharacterView.innerHTML = '';
   if (!clientState.activeCharacter) return;
   ownCharacterView.appendChild(buildCharacterCard(clientState.activeCharacter, { showEditButton: true }));
 }
 
 export function renderDMRoster() {
-  allCharactersView.innerHTML = "";
+  allCharactersView.innerHTML = '';
   if (clientState.dmRoster.length === 0) {
-    const empty = document.createElement("p");
-    empty.className = "dm-roster-empty";
-    empty.textContent = "No players online yet.";
+    const empty = document.createElement('p');
+    empty.className = 'dm-roster-empty';
+    empty.textContent = 'No players online yet.';
     allCharactersView.appendChild(empty);
     return;
   }
   clientState.dmRoster.forEach(({ username, character }) => {
-    const label = document.createElement("div");
-    label.className = "char-sheet-meta";
-    label.style.marginBottom = "4px";
+    const label = document.createElement('div');
+    label.className = 'char-sheet-meta';
+    label.style.marginBottom = '4px';
     label.textContent = `Played by ${username}`;
     allCharactersView.appendChild(label);
     allCharactersView.appendChild(

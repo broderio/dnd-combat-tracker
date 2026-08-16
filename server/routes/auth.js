@@ -4,21 +4,21 @@
 // requirements: usernames must be unique, PIN is just a shared-secret
 // convenience, not real security.
 
-import { Router } from "express";
+import { Router } from 'express';
 
 export class AuthController {
   constructor(database) {
     this.db = database;
     this.router = Router();
-    this.router.post("/login", (req, res) => this.login(req, res));
+    this.router.post('/login', (req, res) => this.login(req, res));
   }
 
   login(req, res) {
-    const username = String(req.body.username || "").trim();
-    const pin = String(req.body.pin || "").trim();
+    const username = String(req.body.username || '').trim();
+    const pin = String(req.body.pin || '').trim();
 
-    if (!username) return res.status(400).json({ ok: false, error: "Username is required." });
-    if (!pin) return res.status(400).json({ ok: false, error: "PIN is required." });
+    if (!username) return res.status(400).json({ ok: false, error: 'Username is required.' });
+    if (!pin) return res.status(400).json({ ok: false, error: 'PIN is required.' });
 
     const db = this.db.loadDB();
     const key = username.toLowerCase();
@@ -32,7 +32,7 @@ export class AuthController {
     }
 
     if (user.pin !== pin) {
-      return res.status(401).json({ ok: false, error: "Incorrect PIN for that username." });
+      return res.status(401).json({ ok: false, error: 'Incorrect PIN for that username.' });
     }
 
     res.json({

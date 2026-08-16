@@ -5,9 +5,9 @@
 // every connected DM when a character is created/edited (see
 // RosterStore#notifyCharacterUpdated).
 
-import { Router } from "express";
+import { Router } from 'express';
 
-import { EVENTS } from "../../shared/protocol.js";
+import { EVENTS } from '../../shared/protocol.js';
 
 export class CharactersController {
   constructor(io, database, roster, gameStateStore) {
@@ -19,17 +19,17 @@ export class CharactersController {
     this.router = Router();
     // TODO: If a player updates their character's color, we should update the
     // token color on the board in real-time.
-    this.router.get("/characters/:username", (req, res) => this.getCharacters(req, res));
-    this.router.post("/characters/:username", (req, res) => this.createCharacter(req, res));
-    this.router.put("/characters/:username/:id", (req, res) => this.updateCharacter(req, res));
-    this.router.delete("/characters/:username/:id", (req, res) => this.deleteCharacter(req, res));
-    this.router.get("/all-characters", (req, res) => this.getAllCharacters(req, res));
+    this.router.get('/characters/:username', (req, res) => this.getCharacters(req, res));
+    this.router.post('/characters/:username', (req, res) => this.createCharacter(req, res));
+    this.router.put('/characters/:username/:id', (req, res) => this.updateCharacter(req, res));
+    this.router.delete('/characters/:username/:id', (req, res) => this.deleteCharacter(req, res));
+    this.router.get('/all-characters', (req, res) => this.getAllCharacters(req, res));
   }
 
   getCharacters(req, res) {
     const db = this.db.loadDB();
     const user = db.users[req.params.username.toLowerCase()];
-    if (!user) return res.status(404).json({ ok: false, error: "Unknown username." });
+    if (!user) return res.status(404).json({ ok: false, error: 'Unknown username.' });
     res.json({ ok: true, characters: user.characters });
   }
 
@@ -37,7 +37,7 @@ export class CharactersController {
     const db = this.db.loadDB();
     const key = req.params.username.toLowerCase();
     const user = db.users[key];
-    if (!user) return res.status(404).json({ ok: false, error: "Unknown username." });
+    if (!user) return res.status(404).json({ ok: false, error: 'Unknown username.' });
 
     const character = this.db.sanitizeCharacter(req.body, null);
     user.characters.push(character);
@@ -51,10 +51,10 @@ export class CharactersController {
     const db = this.db.loadDB();
     const key = req.params.username.toLowerCase();
     const user = db.users[key];
-    if (!user) return res.status(404).json({ ok: false, error: "Unknown username." });
+    if (!user) return res.status(404).json({ ok: false, error: 'Unknown username.' });
 
     const idx = user.characters.findIndex((c) => c.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ ok: false, error: "Character not found." });
+    if (idx === -1) return res.status(404).json({ ok: false, error: 'Character not found.' });
 
     const updated = this.db.sanitizeCharacter(req.body, user.characters[idx]);
     user.characters[idx] = updated;
@@ -71,7 +71,7 @@ export class CharactersController {
     const db = this.db.loadDB();
     const key = req.params.username.toLowerCase();
     const user = db.users[key];
-    if (!user) return res.status(404).json({ ok: false, error: "Unknown username." });
+    if (!user) return res.status(404).json({ ok: false, error: 'Unknown username.' });
 
     user.characters = user.characters.filter((c) => c.id !== req.params.id);
     this.db.saveDB(db);

@@ -9,59 +9,58 @@
 // DM panel vs. player board-hint, the role badge, and the presence log —
 // things that aren't really part of any single panel below.
 
-import "./views/joinView.js";
-import "./views/characterSelectView.js";
-import "./views/characterModalView.js";
-import "./views/measureToolView.js";
-import "./views/diceRollerView.js";
+import './views/joinView.js';
+import './views/characterSelectView.js';
+import './views/characterModalView.js';
+import './views/measureToolView.js';
+import './views/diceRollerView.js';
 
-import { EVENTS } from "/shared/protocol.js";
+import { EVENTS } from '/shared/protocol.js';
 
-import { socketClient } from "./socketClient.js";
-import { clientState } from "./state.js";
-import { positionToken, refreshTokenVisual, render as renderBoard } from "./views/boardView.js";
-import { renderDMRoster, renderOwnCharacterView } from "./views/characterSheetView.js";
-import { renderOwnerDropdown, syncGridFormFromState } from "./views/dmPanelView.js";
-import { renderMonsterSidebar } from "./views/monsterSheetView.js";
-import { renderOverlayList } from "./views/overlayPanelView.js";
-import { renderInitiativeList, renderTurnBanner } from "./views/turnTrackerView.js";
+import { socketClient } from './socketClient.js';
+import { clientState } from './state.js';
+import { positionToken, refreshTokenVisual, render as renderBoard } from './views/boardView.js';
+import { renderDMRoster, renderOwnCharacterView } from './views/characterSheetView.js';
+import { renderOwnerDropdown, syncGridFormFromState } from './views/dmPanelView.js';
+import { renderMonsterSidebar } from './views/monsterSheetView.js';
+import { renderOverlayList } from './views/overlayPanelView.js';
+import { renderInitiativeList, renderTurnBanner } from './views/turnTrackerView.js';
 
+const joinScreen = document.getElementById('join-screen');
+const characterSelectScreen = document.getElementById('character-select-screen');
+const gameScreen = document.getElementById('game-screen');
 
-const joinScreen = document.getElementById("join-screen");
-const characterSelectScreen = document.getElementById("character-select-screen");
-const gameScreen = document.getElementById("game-screen");
+const roleBadge = document.getElementById('role-badge');
+const presenceLog = document.getElementById('presence-log');
+const dmPanel = document.getElementById('dm-panel');
+const monstersSidebar = document.getElementById('monsters-sidebar');
+const charSidebarTitle = document.getElementById('char-sidebar-title');
+const ownCharacterView = document.getElementById('own-character-view');
+const allCharactersView = document.getElementById('all-characters-view');
 
-const roleBadge = document.getElementById("role-badge");
-const presenceLog = document.getElementById("presence-log");
-const dmPanel = document.getElementById("dm-panel");
-const monstersSidebar = document.getElementById("monsters-sidebar");
-const charSidebarTitle = document.getElementById("char-sidebar-title");
-const ownCharacterView = document.getElementById("own-character-view");
-const allCharactersView = document.getElementById("all-characters-view");
-
-socketClient.onEvent("disconnect", () => {
-  presenceLog.textContent = "Connection lost — attempting to reconnect…";
+socketClient.onEvent('disconnect', () => {
+  presenceLog.textContent = 'Connection lost — attempting to reconnect…';
 });
 
 socketClient.onEvent(EVENTS.JOINED, ({ mode, name }) => {
-  presenceLog.textContent = "Connected.";
-  joinScreen.classList.add("hidden");
-  characterSelectScreen.classList.add("hidden");
-  gameScreen.classList.remove("hidden");
-  roleBadge.textContent = mode === "dm" ? `DM · ${name}` : `Player · ${name}`;
+  presenceLog.textContent = 'Connected.';
+  joinScreen.classList.add('hidden');
+  characterSelectScreen.classList.add('hidden');
+  gameScreen.classList.remove('hidden');
+  roleBadge.textContent = mode === 'dm' ? `DM · ${name}` : `Player · ${name}`;
 
-  if (mode === "dm") {
-    dmPanel.classList.remove("hidden");
-    monstersSidebar.classList.remove("hidden");
-    charSidebarTitle.textContent = "All Characters";
-    ownCharacterView.classList.add("hidden");
-    allCharactersView.classList.remove("hidden");
+  if (mode === 'dm') {
+    dmPanel.classList.remove('hidden');
+    monstersSidebar.classList.remove('hidden');
+    charSidebarTitle.textContent = 'All Characters';
+    ownCharacterView.classList.add('hidden');
+    allCharactersView.classList.remove('hidden');
   } else {
-    dmPanel.classList.add("hidden");
-    monstersSidebar.classList.add("hidden");
-    charSidebarTitle.textContent = "Character Sheet";
-    ownCharacterView.classList.remove("hidden");
-    allCharactersView.classList.add("hidden");
+    dmPanel.classList.add('hidden');
+    monstersSidebar.classList.add('hidden');
+    charSidebarTitle.textContent = 'Character Sheet';
+    ownCharacterView.classList.remove('hidden');
+    allCharactersView.classList.add('hidden');
     renderOwnCharacterView();
   }
 });
@@ -90,7 +89,6 @@ socketClient.onEvent(EVENTS.PLAYERS_ONLINE, (list) => {
   renderOwnerDropdown();
 });
 
-// ---------- Board/grid/token state sync ----------
 socketClient.onEvent(EVENTS.STATE, (newState) => {
   clientState.setBoard(newState);
   renderBoard();

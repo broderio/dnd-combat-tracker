@@ -15,11 +15,11 @@
 
 export class PermissionPolicy {
   static isDM(session) {
-    return session.mode === "dm";
+    return session.mode === 'dm';
   }
 
   static isOwnerOfToken(session, token) {
-    return session.mode === "player" && !!token.owner && token.owner.toLowerCase() === session.name.toLowerCase();
+    return session.mode === 'player' && !!token.owner && token.owner.toLowerCase() === session.name.toLowerCase();
   }
 
   /** DM can move any token; a player can only move a token they own. */
@@ -35,4 +35,3 @@ export class PermissionPolicy {
     return PermissionPolicy.isDM(session);
   }
 }
-

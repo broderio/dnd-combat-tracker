@@ -5,8 +5,8 @@
 // gameState and re-broadcast the full state — every client (DM and players)
 // renders the same "whose turn is it" banner from that.
 
-import { EVENTS } from "../../shared/protocol.js";
-import { PermissionPolicy } from "../policy.js";
+import { EVENTS } from '../../shared/protocol.js';
+import { PermissionPolicy } from '../policy.js';
 
 export class TurnHandlers {
   constructor(io, socket, session, gameStateStore) {

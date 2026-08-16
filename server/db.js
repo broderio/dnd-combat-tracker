@@ -1,12 +1,12 @@
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-import { Character, Encounter } from "../shared/schema.js";
+import { Character, Encounter } from '../shared/schema.js';
 
 // ESM has no built-in `__dirname` — this is the standard way to recover it.
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DB_PATH = path.join(__dirname, "..", "data", "db.json");
+const DB_PATH = path.join(__dirname, '..', 'data', 'db.json');
 
 /**
  * Owns all reads/writes of data/db.json: user accounts + characters, and the
@@ -31,13 +31,13 @@ export class Database {
   loadDB() {
     if (!fs.existsSync(this.dbPath)) return { users: {}, encounters: [] };
     try {
-      const raw = fs.readFileSync(this.dbPath, "utf8");
+      const raw = fs.readFileSync(this.dbPath, 'utf8');
       const parsed = JSON.parse(raw);
       if (!parsed.users) parsed.users = {};
       if (!parsed.encounters) parsed.encounters = []; // older db.json files predate Phase 3
       return parsed;
     } catch (err) {
-      console.error("Failed to read db.json, starting fresh:", err.message);
+      console.error('Failed to read db.json, starting fresh:', err.message);
       return { users: {}, encounters: [] };
     }
   }
@@ -65,7 +65,7 @@ export class Database {
   }
 
   generateCharacterId() {
-    return "char_" + this.nextCharId++;
+    return 'char_' + this.nextCharId++;
   }
 
   /**
@@ -97,7 +97,7 @@ export class Database {
   // ---------------- Encounters (Phase 3) ----------------
 
   generateEncounterId() {
-    return "enc_" + this.nextEncounterId++;
+    return 'enc_' + this.nextEncounterId++;
   }
 
   getEncounters() {
@@ -135,4 +135,3 @@ export class Database {
 }
 
 export const db = new Database(DB_PATH);
-

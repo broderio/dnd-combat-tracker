@@ -12,10 +12,10 @@
 // so the game can be resumed after a server restart (or at a later date)
 // without losing the map, grid, tokens, overlays, or initiative order.
 
-import { computeCondition, Grid, MonsterInstance, Overlay, Token, TurnOrder, Validators } from "../shared/schema.js";
-import { EVENTS } from "../shared/protocol.js";
-import { db } from "./db.js";
-import { monsterLibrary } from "./monsterLibrary.js";
+import { computeCondition, Grid, MonsterInstance, Overlay, Token, TurnOrder, Validators } from '../shared/schema.js';
+import { EVENTS } from '../shared/protocol.js';
+import { db } from './db.js';
+import { monsterLibrary } from './monsterLibrary.js';
 
 export class GameStateStore {
   constructor(database) {
@@ -133,7 +133,7 @@ export class GameStateStore {
   pushMonsterInstancesToDMs(io) {
     const list = this.getMonsterInstancesJSON();
     for (const [, s] of io.sockets.sockets) {
-      if (s.data.session && s.data.session.mode === "dm") {
+      if (s.data.session && s.data.session.mode === 'dm') {
         s.emit(EVENTS.ALL_MONSTER_INSTANCES, list);
       }
     }
@@ -153,7 +153,7 @@ export class GameStateStore {
     for (const token of Object.values(this.tokens)) {
       if (!token.combatantId || statuses[token.combatantId]) continue;
       let hp, statusEffects;
-      if (token.combatantType === "monster") {
+      if (token.combatantType === 'monster') {
         const monster = this.monsterInstances[token.combatantId];
         if (!monster) continue;
         hp = monster.hp;
@@ -185,7 +185,7 @@ export class GameStateStore {
   }
 
   addToken(input) {
-    const id = "tok_" + this.nextTokenId++;
+    const id = 'tok_' + this.nextTokenId++;
     const token = Token.fromInput(input, this.grid);
     token.id = id;
     this.tokens[id] = token;
@@ -200,7 +200,7 @@ export class GameStateStore {
     // A monster instance only exists to back one placed token — unlike a
     // Character (which persists independently in data/db.json across
     // placements/sessions), so remove it too rather than leaking orphans.
-    if (token?.combatantType === "monster" && token.combatantId) {
+    if (token?.combatantType === 'monster' && token.combatantId) {
       delete this.monsterInstances[token.combatantId];
     }
     this.#persist();
@@ -257,7 +257,7 @@ export class GameStateStore {
   addMonsterInstance(templateId) {
     const template = monsterLibrary.getTemplate(templateId);
     if (!template) return null;
-    const id = "moninst_" + this.nextMonsterInstanceId++;
+    const id = 'moninst_' + this.nextMonsterInstanceId++;
     const instance = MonsterInstance.fromTemplate(template);
     instance.id = id;
     this.monsterInstances[id] = instance;
@@ -313,7 +313,7 @@ export class GameStateStore {
   // ---------------- Overlays (area-of-effect) ----------------
 
   addOverlay(input) {
-    const id = "ovl_" + this.nextOverlayId++;
+    const id = 'ovl_' + this.nextOverlayId++;
     const overlay = Overlay.fromInput(input, this.grid);
     overlay.id = id;
     this.overlays[id] = overlay;
@@ -343,4 +343,3 @@ export class GameStateStore {
 }
 
 export const gameState = new GameStateStore(db);
-

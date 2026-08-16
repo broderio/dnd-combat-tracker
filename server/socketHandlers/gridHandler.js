@@ -1,6 +1,6 @@
 // server/socketHandlers/gridHandler.js
-import { EVENTS } from "../../shared/protocol.js";
-import { PermissionPolicy } from "../policy.js";
+import { EVENTS } from '../../shared/protocol.js';
+import { PermissionPolicy } from '../policy.js';
 
 export class GridHandler {
   constructor(io, socket, session, gameStateStore) {

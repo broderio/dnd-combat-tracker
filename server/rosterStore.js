@@ -6,7 +6,7 @@
 // it lives in its own class (instantiated once, see the `rosterStore`
 // singleton at the bottom) rather than as a variable server.js used to own.
 
-import { EVENTS } from "../shared/protocol.js";
+import { EVENTS } from '../shared/protocol.js';
 
 export class RosterStore {
   constructor() {
@@ -64,7 +64,7 @@ export class RosterStore {
       .map((entry) => ({ username: entry.username, character: entry.character }));
 
     for (const [, s] of io.sockets.sockets) {
-      if (s.data.session && s.data.session.mode === "dm") {
+      if (s.data.session && s.data.session.mode === 'dm') {
         s.emit(EVENTS.ALL_CHARACTERS, list);
       }
     }
@@ -86,4 +86,3 @@ export class RosterStore {
 }
 
 export const rosterStore = new RosterStore();
-

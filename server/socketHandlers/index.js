@@ -4,16 +4,16 @@
 // socket gets its own `session` object (mode/name/characterId), shared by
 // reference across the handler instances constructed below.
 
-import { db } from "../db.js";
-import { gameState } from "../gameState.js";
-import { rosterStore } from "../rosterStore.js";
+import { db } from '../db.js';
+import { gameState } from '../gameState.js';
+import { rosterStore } from '../rosterStore.js';
 
-import { GridHandler } from "./gridHandler.js";
-import { JoinHandler } from "./joinHandler.js";
-import { OverlayHandlers } from "./overlayHandlers.js";
-import { TokenHandlers } from "./tokenHandlers.js";
-import { TurnHandlers } from "./turnHandlers.js";
-import { DiceHandlers } from "./diceHandler.js";
+import { GridHandler } from './gridHandler.js';
+import { JoinHandler } from './joinHandler.js';
+import { OverlayHandlers } from './overlayHandlers.js';
+import { TokenHandlers } from './tokenHandlers.js';
+import { TurnHandlers } from './turnHandlers.js';
+import { DiceHandlers } from './diceHandler.js';
 
 /**
  * Wires up `io.on('connection', ...)`, instantiating one of each handler
@@ -22,7 +22,7 @@ import { DiceHandlers } from "./diceHandler.js";
  * singletons it needs).
  */
 export function registerSocketHandlers(io) {
-  io.on("connection", (socket) => {
+  io.on('connection', (socket) => {
     const session = { mode: null, name: null, characterId: null };
 
     new JoinHandler(io, socket, session, db, gameState, rosterStore).register();

@@ -13,15 +13,15 @@
 // Deliberately read-only reference data: no homebrew/custom monster editor,
 // and this module never mutates `monsters`.
 
-import { monsters } from "dnd-data";
+import { monsters } from 'dnd-data';
 
 /**
  * Pulls the leading integer out of a string like "135 (18d10+36)" or
  * "17 (Natural Armor)". Falls back to `fallback` if nothing parses.
  */
 function parseLeadingInt(value, fallback = null) {
-  if (typeof value === "number") return value;
-  if (typeof value !== "string") return fallback;
+  if (typeof value === 'number') return value;
+  if (typeof value !== 'string') return fallback;
   const match = value.match(/-?\d+/);
   return match ? parseInt(match[0], 10) : fallback;
 }
@@ -36,7 +36,7 @@ function parseLeadingInt(value, fallback = null) {
  * structured "attacks" list for the DM sidebar.
  */
 function parseAttacks(raw) {
-  if (!raw || typeof raw !== "string") return [];
+  if (!raw || typeof raw !== 'string') return [];
   let parsed;
   try {
     parsed = JSON.parse(raw);
@@ -45,13 +45,13 @@ function parseAttacks(raw) {
   }
   if (!Array.isArray(parsed)) return [];
   return parsed
-    .filter((a) => a && (a["Hit Bonus"] !== undefined || a["Damage"] !== undefined))
+    .filter((a) => a && (a['Hit Bonus'] !== undefined || a['Damage'] !== undefined))
     .map((a) => ({
-      name: a.Name || "Attack",
-      toHit: a["Hit Bonus"] !== undefined ? `+${a["Hit Bonus"]}` : null,
+      name: a.Name || 'Attack',
+      toHit: a['Hit Bonus'] !== undefined ? `+${a['Hit Bonus']}` : null,
       damage: a.Damage || null,
-      damageType: a["Damage Type"] || null,
-      desc: a.Desc || "",
+      damageType: a['Damage Type'] || null,
+      desc: a.Desc || '',
     }))
     .slice(0, 10); // bounded — some entries have a long tail of minor options
 }
@@ -64,17 +64,17 @@ function parseAttacks(raw) {
 function toTemplate(entry, index) {
   const p = entry.properties || {};
   return {
-    id: "mon_" + index,
+    id: 'mon_' + index,
     name: entry.name,
-    size: p.Size || "",
-    type: p.Type || "",
-    alignment: p.Alignment || "",
-    cr: p["data-CrNum"] ?? parseLeadingInt(p["Challenge Rating"]),
-    ac: p["data-AcNum"] ?? parseLeadingInt(p.AC),
-    hpMax: p["data-HpNum"] ?? parseLeadingInt(p.HP),
-    speed: p.Speed || "",
-    attacks: parseAttacks(p["data-Actions"]),
-    source: entry.book || entry.publisher || "",
+    size: p.Size || '',
+    type: p.Type || '',
+    alignment: p.Alignment || '',
+    cr: p['data-CrNum'] ?? parseLeadingInt(p['Challenge Rating']),
+    ac: p['data-AcNum'] ?? parseLeadingInt(p.AC),
+    hpMax: p['data-HpNum'] ?? parseLeadingInt(p.HP),
+    speed: p.Speed || '',
+    attacks: parseAttacks(p['data-Actions']),
+    source: entry.book || entry.publisher || '',
   };
 }
 
@@ -111,10 +111,10 @@ export class MonsterLibrary {
    * (default 50, max 200) so an unfiltered search can't ship a huge payload.
    */
   search({ name, crMin, crMax, type, limit } = {}) {
-    const nameNeedle = (name || "").trim().toLowerCase();
-    const typeNeedle = (type || "").trim().toLowerCase();
-    const min = crMin !== undefined && crMin !== "" ? Number(crMin) : null;
-    const max = crMax !== undefined && crMax !== "" ? Number(crMax) : null;
+    const nameNeedle = (name || '').trim().toLowerCase();
+    const typeNeedle = (type || '').trim().toLowerCase();
+    const min = crMin !== undefined && crMin !== '' ? Number(crMin) : null;
+    const max = crMax !== undefined && crMax !== '' ? Number(crMax) : null;
     const cap = Math.max(1, Math.min(200, Number(limit) || 50));
 
     const results = [];

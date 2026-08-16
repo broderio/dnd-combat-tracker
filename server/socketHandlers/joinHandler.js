@@ -4,7 +4,7 @@
 // and 'disconnect'. Populates `session` (shared with the other handler
 // classes for this socket) and keeps the roster/presence broadcasts in sync.
 
-import { EVENTS } from "../../shared/protocol.js";
+import { EVENTS } from '../../shared/protocol.js';
 
 export class JoinHandler {
   constructor(io, socket, session, database, gameStateStore, roster) {
@@ -18,16 +18,16 @@ export class JoinHandler {
 
   register() {
     this.socket.on(EVENTS.JOIN, (payload) => this.#handleJoin(payload));
-    this.socket.on("disconnect", () => this.#handleDisconnect());
+    this.socket.on('disconnect', () => this.#handleDisconnect());
   }
 
   #handleJoin({ mode, name, characterId }) {
-    this.session.mode = mode === "dm" ? "dm" : "player";
-    this.session.name = (name || "").trim() || "Player";
+    this.session.mode = mode === 'dm' ? 'dm' : 'player';
+    this.session.name = (name || '').trim() || 'Player';
     this.session.characterId = characterId || null;
     this.socket.data.session = this.session;
 
-    if (this.session.mode === "player") {
+    if (this.session.mode === 'player') {
       const db = this.db.loadDB();
       const user = db.users[this.session.name.toLowerCase()];
       const character = user ? user.characters.find((c) => c.id === this.session.characterId) : null;
@@ -38,7 +38,7 @@ export class JoinHandler {
 
     this.socket.emit(EVENTS.JOINED, { mode: this.session.mode, name: this.session.name });
     this.socket.emit(EVENTS.STATE, this.gameState.getState());
-    if (this.session.mode === "dm") {
+    if (this.session.mode === 'dm') {
       this.socket.emit(EVENTS.ALL_MONSTER_INSTANCES, this.gameState.getMonsterInstancesJSON());
     }
 
@@ -60,4 +60,3 @@ export class JoinHandler {
     }
   }
 }
-

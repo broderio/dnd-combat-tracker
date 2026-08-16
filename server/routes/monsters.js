@@ -5,15 +5,15 @@
 // "you're using the app" — same trust level as /api/all-characters, and
 // there's no write path here at all (no homebrew editor).
 
-import { Router } from "express";
+import { Router } from 'express';
 
-import { monsterLibrary } from "../monsterLibrary.js";
+import { monsterLibrary } from '../monsterLibrary.js';
 
 export class MonstersController {
   constructor() {
     this.router = Router();
-    this.router.get("/monsters", (req, res) => this.search(req, res));
-    this.router.get("/monsters/:id", (req, res) => this.getOne(req, res));
+    this.router.get('/monsters', (req, res) => this.search(req, res));
+    this.router.get('/monsters/:id', (req, res) => this.getOne(req, res));
   }
 
   search(req, res) {
@@ -24,7 +24,7 @@ export class MonstersController {
 
   getOne(req, res) {
     const template = monsterLibrary.getTemplate(req.params.id);
-    if (!template) return res.status(404).json({ ok: false, error: "Unknown monster id." });
+    if (!template) return res.status(404).json({ ok: false, error: 'Unknown monster id.' });
     res.json({ ok: true, monster: template });
   }
 }

@@ -8,9 +8,9 @@
 // content — `name` is the only thing a request body actually contributes;
 // the snapshot itself always comes from the server's own live state.
 
-import { Router } from "express";
+import { Router } from 'express';
 
-import { EVENTS } from "../../shared/protocol.js";
+import { EVENTS } from '../../shared/protocol.js';
 
 export class EncountersController {
   constructor(io, database, gameStateStore) {
@@ -19,11 +19,11 @@ export class EncountersController {
     this.gameState = gameStateStore;
 
     this.router = Router();
-    this.router.get("/encounters", (req, res) => this.list(req, res));
-    this.router.post("/encounters", (req, res) => this.create(req, res));
-    this.router.put("/encounters/:id", (req, res) => this.update(req, res));
-    this.router.delete("/encounters/:id", (req, res) => this.remove(req, res));
-    this.router.post("/encounters/:id/load", (req, res) => this.load(req, res));
+    this.router.get('/encounters', (req, res) => this.list(req, res));
+    this.router.post('/encounters', (req, res) => this.create(req, res));
+    this.router.put('/encounters/:id', (req, res) => this.update(req, res));
+    this.router.delete('/encounters/:id', (req, res) => this.remove(req, res));
+    this.router.post('/encounters/:id/load', (req, res) => this.load(req, res));
   }
 
   list(req, res) {
@@ -46,7 +46,7 @@ export class EncountersController {
     const payload = { name: req.body.name };
     if (req.body.resnapshot) payload.snapshot = this.gameState.toSnapshotJSON();
     const updated = this.db.updateEncounter(req.params.id, payload);
-    if (!updated) return res.status(404).json({ ok: false, error: "Encounter not found." });
+    if (!updated) return res.status(404).json({ ok: false, error: 'Encounter not found.' });
     res.json({ ok: true, encounter: updated.toJSON(), encounters: this.db.getEncounters() });
   }
 
@@ -65,7 +65,7 @@ export class EncountersController {
    */
   load(req, res) {
     const encounter = this.db.getEncounter(req.params.id);
-    if (!encounter) return res.status(404).json({ ok: false, error: "Encounter not found." });
+    if (!encounter) return res.status(404).json({ ok: false, error: 'Encounter not found.' });
 
     this.gameState.restoreSnapshot(encounter.snapshot);
     this.io.emit(EVENTS.STATE, this.gameState.getState());

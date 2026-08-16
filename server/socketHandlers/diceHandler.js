@@ -8,7 +8,7 @@
 // a casual combat tracker, not a competitive-integrity tool) and clamps
 // count/sides/modifier to sane bounds.
 
-import { EVENTS } from "../../shared/protocol.js";
+import { EVENTS } from '../../shared/protocol.js';
 
 function rollDie(sides) {
   return 1 + Math.floor(Math.random() * sides);

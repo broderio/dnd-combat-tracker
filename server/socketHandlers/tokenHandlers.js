@@ -1,6 +1,6 @@
 // server/socketHandlers/tokenHandlers.js
-import { EVENTS } from "../../shared/protocol.js";
-import { PermissionPolicy } from "../policy.js";
+import { EVENTS } from '../../shared/protocol.js';
+import { PermissionPolicy } from '../policy.js';
 
 export class TokenHandlers {
   constructor(io, socket, session, gameStateStore) {
@@ -53,7 +53,7 @@ export class TokenHandlers {
       col,
       row,
       combatantId: instance.id,
-      combatantType: "monster",
+      combatantType: 'monster',
     });
     this.io.emit(EVENTS.STATE, this.gameState.getState());
     this.gameState.pushMonsterInstancesToDMs(this.io);
@@ -68,4 +68,3 @@ export class TokenHandlers {
     this.gameState.pushMonsterInstancesToDMs(this.io);
   }
 }
-

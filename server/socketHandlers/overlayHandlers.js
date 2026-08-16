@@ -5,8 +5,8 @@
 // dedicated "overlay-added" event is needed — adding/removing one just
 // triggers a normal full-state re-broadcast, same pattern as GridHandler.
 
-import { EVENTS } from "../../shared/protocol.js";
-import { PermissionPolicy } from "../policy.js";
+import { EVENTS } from '../../shared/protocol.js';
+import { PermissionPolicy } from '../policy.js';
 
 export class OverlayHandlers {
   constructor(io, socket, session, gameStateStore) {

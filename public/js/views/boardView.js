@@ -1,39 +1,30 @@
-// public/js/views/boardView.js
-//
-
-import { OVERLAY_TYPES, STATUS_EFFECTS } from "/shared/schema.js";
-import { EVENTS } from "/shared/protocol.js";
-
-import { socketClient } from "../socketClient.js";
-import { clientState } from "../state.js";
-
-import { renderTokenList } from "./dmPanelView.js";
-import { monsterBadgeLabel } from "./monsterSheetView.js";
+import { OVERLAY_TYPES, STATUS_EFFECTS } from '/shared/schema.js';
+import { EVENTS } from '/shared/protocol.js';
+import { socketClient } from '../socketClient.js';
+import { clientState } from '../state.js';
+import { renderTokenList } from './dmPanelView.js';
+import { monsterBadgeLabel } from './monsterSheetView.js';
 
 export class BoardView {
   constructor() {
-    this.boardEl = document.getElementById("board");
-    this.gridLayer = document.getElementById("grid-layer");
-    this.overlayLayer = document.getElementById("overlay-layer");
-    this.tokenLayer = document.getElementById("token-layer");
+    this.boardEl = document.getElementById('board');
+    this.gridLayer = document.getElementById('grid-layer');
+    this.overlayLayer = document.getElementById('overlay-layer');
+    this.tokenLayer = document.getElementById('token-layer');
 
-    /** The id of the token currently being dragged, or null. */
-    this.draggingId = null;
-    /** True while a board tool (e.g. measuring) has temporarily suspended token dragging. */
-    this.draggingDisabled = false;
+    this.draggingId = null; // The token currently being dragged, if any
+    this.draggingDisabled = false; // True while a board tool is active that temporarily suspends token dragging
 
-    /** Logical-to-display pixel ratio — see the file header comment. Recomputed on every render(). */
-    this.displayScale = 1;
+    this.displayScale = 1; // The board's current scale factor, so the whole grid fits inside its container
 
     this.#attachResize();
   }
 
-  // Re-fits the board whenever its container changes size (window resize,
-  // the DM panel/sidebar showing or hiding, etc.) — not just on `window`
-  // resize, since those other layout changes don't fire a resize event. Also
-  // watches the board's siblings (toolbar, hint text) since toggling their
-  // visibility changes how much room is actually left for the board without
-  // changing the wrap's own size.
+  getDisplayScale() {
+    return this.displayScale;
+  }
+
+  /** Re-fits the board whenever its container changes size. */
   #attachResize() {
     const wrap = this.boardEl.parentElement;
     const observer = new ResizeObserver(() => this.render());
@@ -43,7 +34,7 @@ export class BoardView {
     }
   }
 
-  /** The grid's own size, in logical (unscaled) pixels — before any display fitting. */
+  /** The grid's own size, in logical (unscaled) pixels. */
   #getLogicalSize() {
     const board = clientState.board;
     return {
@@ -52,15 +43,9 @@ export class BoardView {
     };
   }
 
-  /**
-   * The available space (content box, padding excluded) inside the board's
-   * container, minus whatever room its siblings (the toolbar above it, the
-   * hint text below it) actually take up — the wrap is a flex column, so
-   * that space isn't available to the board itself. Getting this wrong
-   * makes the board bigger than its real budget, which then gets clipped
-   * by the wrap's `overflow: hidden`, cutting off the bottom rows of the
-   * grid (and making them unreachable by drag/measuring).
-   */
+  /** The available space (content box, padding excluded) inside the board's container, minus whatever room its
+   * siblings (the toolbar above it, the hint text below it) actually take up.
+   * */
   #getContainerSize() {
     const wrap = this.boardEl.parentElement;
     const style = getComputedStyle(wrap);
@@ -71,9 +56,8 @@ export class BoardView {
     for (const child of wrap.children) {
       if (child === this.boardEl) continue;
       const childStyle = getComputedStyle(child);
-      if (childStyle.display === "none") continue;
-      siblingHeight +=
-        child.offsetHeight + parseFloat(childStyle.marginTop) + parseFloat(childStyle.marginBottom);
+      if (childStyle.display === 'none') continue;
+      siblingHeight += child.offsetHeight + parseFloat(childStyle.marginTop) + parseFloat(childStyle.marginBottom);
     }
 
     return {
@@ -82,11 +66,7 @@ export class BoardView {
     };
   }
 
-  /**
-   * The single scale factor that fits the whole logical grid inside the
-   * container in both dimensions at once (a "contain" fit), so every cell is
-   * always in view with no scrolling.
-   */
+  /** The single scale factor that fits the whole logical grid inside the container in both dimensions at once. */
   #calculateDisplayScale(logicalWidth, logicalHeight) {
     if (!logicalWidth || !logicalHeight) return 1;
     const container = this.#getContainerSize();
@@ -94,7 +74,7 @@ export class BoardView {
     return Math.min(container.width / logicalWidth, container.height / logicalHeight);
   }
 
-  /** Converts a pointer/mouse event's client coordinates into logical (unscaled) board pixels. */
+  /** Converts a pointer/mouse event's client coordinates into logical board pixels. */
   #boardPointFromEvent(e) {
     const rect = this.boardEl.getBoundingClientRect();
     return {
@@ -110,7 +90,7 @@ export class BoardView {
 
     this.boardEl.style.width = `${logicalWidth * this.displayScale}px`;
     this.boardEl.style.height = `${logicalHeight * this.displayScale}px`;
-    this.boardEl.style.backgroundImage = board.background ? `url(${board.background})` : "none";
+    this.boardEl.style.backgroundImage = board.background ? `url(${board.background})` : 'none';
 
     this.#renderGrid(logicalWidth, logicalHeight);
     this.#renderOverlays();
@@ -122,15 +102,12 @@ export class BoardView {
     const board = clientState.board;
     const scale = this.displayScale;
 
-    // The SVG's pixel size matches the board's on-screen size; its viewBox
-    // stays in logical units so the line coordinates below don't need to
-    // know about `scale` at all — the browser does that scaling for us.
-    this.gridLayer.setAttribute("width", logicalWidth * scale);
-    this.gridLayer.setAttribute("height", logicalHeight * scale);
-    this.gridLayer.setAttribute("viewBox", `0 0 ${logicalWidth} ${logicalHeight}`);
-    this.gridLayer.innerHTML = "";
+    this.gridLayer.setAttribute('width', logicalWidth * scale);
+    this.gridLayer.setAttribute('height', logicalHeight * scale);
+    this.gridLayer.setAttribute('viewBox', `0 0 ${logicalWidth} ${logicalHeight}`);
+    this.gridLayer.innerHTML = '';
 
-    const showLines = clientState.session.mode === "dm" || board.grid.visible;
+    const showLines = clientState.session.mode === 'dm' || board.grid.visible;
     if (!showLines) return;
 
     for (let c = 0; c <= board.grid.cols; c++) {
@@ -144,11 +121,11 @@ export class BoardView {
   }
 
   static #svgLine(x1, y1, x2, y2) {
-    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    line.setAttribute("x1", x1);
-    line.setAttribute("y1", y1);
-    line.setAttribute("x2", x2);
-    line.setAttribute("y2", y2);
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', x1);
+    line.setAttribute('y1', y1);
+    line.setAttribute('x2', x2);
+    line.setAttribute('y2', y2);
     return line;
   }
 
@@ -156,12 +133,12 @@ export class BoardView {
   #renderOverlays() {
     const board = clientState.board;
     const cs = board.grid.cellSize * this.displayScale;
-    this.overlayLayer.innerHTML = "";
+    this.overlayLayer.innerHTML = '';
 
     Object.values(board.overlays).forEach((overlay) => {
       const meta = OVERLAY_TYPES[overlay.type] || OVERLAY_TYPES.generic;
-      const el = document.createElement("div");
-      el.className = "overlay-shape";
+      const el = document.createElement('div');
+      el.className = 'overlay-shape';
       el.title = overlay.label ? `${meta.label}: ${overlay.label}` : meta.label;
       el.style.background = meta.color;
       el.style.borderColor = meta.color;
@@ -173,7 +150,7 @@ export class BoardView {
       el.style.height = `${size}px`;
       el.style.left = `${centerX - size / 2}px`;
       el.style.top = `${centerY - size / 2}px`;
-      el.style.borderRadius = overlay.shape === "circle" ? "50%" : "4px";
+      el.style.borderRadius = overlay.shape === 'circle' ? '50%' : '4px';
 
       this.overlayLayer.appendChild(el);
     });
@@ -200,13 +177,13 @@ export class BoardView {
   #applyTokenVisualState(el, token) {
     const status = BoardView.#combatantStatus(token);
     const effects = status?.statusEffects || [];
-    const bloodied = status ? status.condition === "bloodied" || status.condition === "critical" : false;
-    el.classList.toggle("bloodied", bloodied);
-    el.classList.toggle("active-turn", token.id === this.#activeTurnTokenId());
+    const bloodied = status ? status.condition === 'bloodied' || status.condition === 'critical' : false;
+    el.classList.toggle('bloodied', bloodied);
+    el.classList.toggle('active-turn', token.id === this.#activeTurnTokenId());
     this.#renderTokenEffects(el, effects);
 
-    const effectNames = effects.map((effect) => (typeof effect === "string" ? effect : effect.name));
-    const effectsText = effectNames.length ? ` [${effectNames.join(", ")}]` : "";
+    const effectNames = effects.map((effect) => (typeof effect === 'string' ? effect : effect.name));
+    const effectsText = effectNames.length ? ` [${effectNames.join(', ')}]` : '';
     el.title = token.owner ? `${token.name} (controlled by ${token.owner})` : `${token.name} (DM-controlled)`;
     el.title += effectsText;
   }
@@ -220,11 +197,11 @@ export class BoardView {
 
   #renderTokens() {
     const board = clientState.board;
-    this.tokenLayer.innerHTML = "";
+    this.tokenLayer.innerHTML = '';
 
     Object.values(board.tokens).forEach((token) => {
-      const el = document.createElement("div");
-      el.className = "token";
+      const el = document.createElement('div');
+      el.className = 'token';
       el.dataset.id = token.id;
 
       const size = (board.grid.cellSize - 6) * this.displayScale;
@@ -234,20 +211,17 @@ export class BoardView {
       el.textContent = BoardView.#initials(token.name);
       this.#applyTokenVisualState(el, token);
 
-      // Monster-linked tokens get a small "#N" badge matching the same
-      // instance's card in the Monsters sidebar (see monsterSheetView.js),
-      // so the DM can tell at a glance which card a given token refers to.
-      if (token.combatantType === "monster" && token.combatantId) {
-        const badge = document.createElement("span");
-        badge.className = "token-monster-badge";
+      if (token.combatantType === 'monster' && token.combatantId) {
+        const badge = document.createElement('span');
+        badge.className = 'token-monster-badge';
         badge.textContent = monsterBadgeLabel(token.combatantId);
         el.appendChild(badge);
       }
 
       const canDrag =
-        clientState.session.mode === "dm" ||
+        clientState.session.mode === 'dm' ||
         (token.owner && token.owner.toLowerCase() === clientState.session.name.toLowerCase());
-      el.classList.add(canDrag ? "draggable" : "locked");
+      el.classList.add(canDrag ? 'draggable' : 'locked');
       if (canDrag) this.#attachDrag(el, token.id);
 
       this.tokenLayer.appendChild(el);
@@ -256,26 +230,26 @@ export class BoardView {
   }
 
   #renderTokenEffects(el, effects) {
-    const oldContainer = el.querySelector(".token-effects");
+    const oldContainer = el.querySelector('.token-effects');
     if (oldContainer) oldContainer.remove();
     if (!effects.length) return;
 
-    const container = document.createElement("div");
-    container.className = "token-effects";
+    const container = document.createElement('div');
+    container.className = 'token-effects';
 
     effects.forEach((effect) => {
-      const effectName = typeof effect === "string" ? effect : effect.name;
+      const effectName = typeof effect === 'string' ? effect : effect.name;
       if (!effectName) return;
 
       const visual = STATUS_EFFECTS[effectName.toLowerCase()];
-      const icon = visual?.icon || "help";
-      const badge = document.createElement("span");
-      badge.className = "token-effect";
-      badge.style.backgroundColor = visual?.background || "#555";
-      badge.style.color = visual?.color || "#fff";
+      const icon = visual?.icon || 'help';
+      const badge = document.createElement('span');
+      badge.className = 'token-effect';
+      badge.style.backgroundColor = visual?.background || '#555';
+      badge.style.color = visual?.color || '#fff';
 
-      const iconEl = document.createElement("span");
-      iconEl.className = "token-effect-icon";
+      const iconEl = document.createElement('span');
+      iconEl.className = 'token-effect-icon';
       iconEl.textContent = icon;
 
       badge.appendChild(iconEl);
@@ -314,45 +288,45 @@ export class BoardView {
     return name
       .split(/\s+/)
       .map((w) => w[0])
-      .join("")
+      .join('')
       .slice(0, 3)
       .toUpperCase();
   }
 
-  /** Suspends token dragging (used by measureToolView.js while a measuring tool is armed). */
+  /** Suspends token dragging. */
   disableDragging() {
     this.draggingDisabled = true;
-    this.boardEl.style.cursor = "crosshair";
+    this.boardEl.style.cursor = 'crosshair';
     Object.values(clientState.board.tokens).forEach((token) => {
       const el = this.tokenLayer.querySelector(`[data-id="${token.id}"]`);
-      if (el) el.classList.remove("draggable");
+      if (el) el.classList.remove('draggable');
     });
   }
 
   enableDragging() {
     this.draggingDisabled = false;
-    this.boardEl.style.cursor = "";
+    this.boardEl.style.cursor = '';
     const board = clientState.board;
     Object.values(board.tokens).forEach((token) => {
       const el = this.tokenLayer.querySelector(`[data-id="${token.id}"]`);
       if (!el) return;
       const canDrag =
-        clientState.session.mode === "dm" ||
+        clientState.session.mode === 'dm' ||
         (token.owner && token.owner.toLowerCase() === clientState.session.name.toLowerCase());
-      el.classList.toggle("draggable", canDrag);
-      el.classList.toggle("locked", !canDrag);
+      el.classList.toggle('draggable', canDrag);
+      el.classList.toggle('locked', !canDrag);
     });
   }
 
   #attachDrag(el, id) {
-    el.addEventListener("pointerdown", (e) => {
+    el.addEventListener('pointerdown', (e) => {
       if (this.draggingDisabled) return;
       this.draggingId = id;
-      el.classList.add("dragging");
+      el.classList.add('dragging');
       el.setPointerCapture(e.pointerId);
     });
 
-    el.addEventListener("pointermove", (e) => {
+    el.addEventListener('pointermove', (e) => {
       if (this.draggingId !== id) return;
       const board = clientState.board;
       const { x, y } = this.#boardPointFromEvent(e);
@@ -367,10 +341,10 @@ export class BoardView {
       el.style.top = `${logicalY * scale - (size * scale) / 2}px`;
     });
 
-    el.addEventListener("pointerup", (e) => {
+    el.addEventListener('pointerup', (e) => {
       if (this.draggingId !== id) return;
       this.draggingId = null;
-      el.classList.remove("dragging");
+      el.classList.remove('dragging');
 
       const board = clientState.board;
       const { x, y } = this.#boardPointFromEvent(e);
@@ -390,17 +364,11 @@ export class BoardView {
     return Math.max(min, Math.min(max, v));
   }
 
-  /** The board's bounding element — read-only access for other board-interaction classes. */
   getBoardElement() {
     return this.boardEl;
   }
 
-  /**
-   * Converts a pointer/mouse event's client coordinates into a board
-   * {col, row}, clamped to grid bounds. The one shared entry point every
-   * board tool (dragging, measuring) uses to go from screen pixels to grid
-   * cells — see the file header comment.
-   */
+  /** Converts a pointer/mouse event's client coordinates into a board {col, row}, clamped to grid bounds. */
   cellFromEvent(e) {
     const board = clientState.board;
     const { x, y } = this.#boardPointFromEvent(e);
@@ -416,24 +384,35 @@ export const boardView = new BoardView();
 export function render() {
   boardView.render();
 }
+
 export function refreshTokenVisual(id) {
   boardView.refreshTokenVisual(id);
 }
+
 export function positionToken(id) {
   boardView.positionToken(id);
 }
+
 export function updateTokenColor(tokenId, newColor) {
   boardView.updateTokenColor(tokenId, newColor);
 }
+
 export function getBoardElement() {
   return boardView.getBoardElement();
 }
+
 export function cellFromEvent(e) {
   return boardView.cellFromEvent(e);
 }
+
 export function disableDragging() {
   boardView.disableDragging();
 }
+
 export function enableDragging() {
   boardView.enableDragging();
+}
+
+export function getDisplayScale() {
+  return boardView.getDisplayScale();
 }
