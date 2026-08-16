@@ -348,6 +348,38 @@ body {
   font-family: inherit;
 }
 
+.cf-entry-list {
+  margin: 8px 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cf-entry-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--wood-light);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  color: var(--parchment-dim);
+}
+.cf-entry-row strong {
+  color: var(--parchment);
+}
+.cf-entry-remove-btn {
+  background: none;
+  border: none;
+  color: var(--ember-bright, #e63946);
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1;
+  padding: 2px 6px;
+}
+
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;
@@ -473,6 +505,47 @@ body {
 }
 .hp-bar-fill.critical {
   background: #8a2b1f;
+}
+
+.spell-slots-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.spell-slot-column {
+  display: flex;
+}
+.spell-slot-track {
+  position: relative;
+  width: 20px;
+  height: 34px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+}
+.spell-slot-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #3f8fe0;
+  transition: height 0.1s ease-out;
+}
+.spell-slot-level-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--parchment);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
 }
 
 .char-sheet-abilities {

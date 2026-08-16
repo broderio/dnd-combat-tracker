@@ -85,11 +85,13 @@
           </label>
           <label
             >Class
-            <input id="cf-class" type="text" maxlength="40" placeholder="e.g. Ranger" />
+            <input id="cf-class" type="text" maxlength="40" list="cf-class-options" placeholder="e.g. Ranger" />
+            <datalist id="cf-class-options"></datalist>
           </label>
           <label
             >Race
-            <input id="cf-race" type="text" maxlength="40" placeholder="e.g. Half-Elf" />
+            <input id="cf-race" type="text" maxlength="40" list="cf-race-options" placeholder="e.g. Half-Elf" />
+            <datalist id="cf-race-options"></datalist>
           </label>
           <label
             >Level
@@ -119,15 +121,61 @@
           <label>CHA <input id="cf-cha" type="number" min="1" max="30" value="10" /></label>
         </div>
 
+        <h3>Max Spell Slots</h3>
+        <div id="cf-spell-slot-max-grid" class="ability-grid"></div>
+
         <label class="notes-label"
           >Notes
           <textarea
             id="cf-notes"
             maxlength="2000"
             rows="3"
-            placeholder="Features, equipment, anything else worth remembering"
+            placeholder="Equipment, backstory, anything else worth remembering"
           ></textarea>
         </label>
+
+        <h3>Attacks</h3>
+        <div class="char-form-grid">
+          <label
+            >Weapon lookup
+            <input id="cf-attack-search" type="text" list="cf-weapon-options" placeholder="Search dnd-data weapons…" />
+            <datalist id="cf-weapon-options"></datalist>
+          </label>
+          <label>To Hit <input id="cf-attack-tohit" type="text" maxlength="20" placeholder="+5" /></label>
+          <label>Damage <input id="cf-attack-damage" type="text" maxlength="40" placeholder="1d8+3" /></label>
+          <label>Damage Type <input id="cf-attack-damagetype" type="text" maxlength="30" placeholder="slashing" /></label>
+        </div>
+        <label class="notes-label"
+          >Attack Notes
+          <textarea id="cf-attack-desc" maxlength="500" rows="2" placeholder="Special properties, range, etc."></textarea>
+        </label>
+        <button id="cf-add-attack-btn" type="button" class="secondary-btn">+ Add Attack</button>
+        <div id="cf-attacks-list" class="cf-entry-list"></div>
+
+        <h3>Spells</h3>
+        <div class="char-form-grid">
+          <label
+            >Spell lookup
+            <input id="cf-spell-search" type="text" list="cf-spell-options" placeholder="Search dnd-data spells…" />
+            <datalist id="cf-spell-options"></datalist>
+          </label>
+        </div>
+        <button id="cf-add-spell-btn" type="button" class="secondary-btn">+ Add Spell</button>
+        <div id="cf-spells-list" class="cf-entry-list"></div>
+
+        <h3>Features</h3>
+        <p class="hint">
+          Class features are prose in the source data and aren't searchable — add them by hand.
+        </p>
+        <div class="char-form-grid">
+          <label>Feature Name <input id="cf-feature-name" type="text" maxlength="60" placeholder="e.g. Fighting Style" /></label>
+        </div>
+        <label class="notes-label"
+          >Feature Description
+          <textarea id="cf-feature-desc" maxlength="1000" rows="2"></textarea>
+        </label>
+        <button id="cf-add-feature-btn" type="button" class="secondary-btn">+ Add Feature</button>
+        <div id="cf-features-list" class="cf-entry-list"></div>
 
         <label>Color <input id="cf-token-color" type="color" value="#e63946" /></label>
 

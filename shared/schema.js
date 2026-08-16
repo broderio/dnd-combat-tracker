@@ -1,5 +1,10 @@
 export const ABILITY_KEYS = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
 
+// Spell slots are tracked per character level 1-9 (cantrips don't consume
+// slots, so there's no level 0 here). Shared by Character and
+// MonsterInstance so the same UI/quick-edit plumbing works for both.
+export const SPELL_LEVELS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+
 export const CHARACTER_FIELDS = [
   {
     key: 'name',
@@ -187,6 +192,87 @@ export class Validators {
   }
 }
 
+function sanitizeStringField(value, maxLength) {
+  if (value === undefined || value === null) return '';
+  return String(value).trim().slice(0, maxLength);
+}
+
+// Attack/feature/spell combat stats aren't reliably parseable out of
+// dnd-data (weapon items carry prose, not structured to-hit/damage), so
+// players search dnd-data for a name to reference and fill in the rest by
+// hand — same reasoning the server applies to monster class-feature prose.
+function sanitizeAttack(a) {
+  if (!a || typeof a !== 'object') return null;
+  const name = sanitizeStringField(a.name, 60);
+  if (!name) return null;
+  return {
+    name,
+    toHit: sanitizeStringField(a.toHit, 20) || null,
+    damage: sanitizeStringField(a.damage, 40) || null,
+    damageType: sanitizeStringField(a.damageType, 30) || null,
+    desc: sanitizeStringField(a.desc, 500),
+  };
+}
+
+function sanitizeFeature(f) {
+  if (!f || typeof f !== 'object') return null;
+  const name = sanitizeStringField(f.name, 60);
+  if (!name) return null;
+  return { name, desc: sanitizeStringField(f.desc, 1000) };
+}
+
+// Spells come from dnd-data search results, which do carry structured
+// level/school fields, so those are kept as-is rather than free text.
+function sanitizeSpell(s) {
+  if (!s || typeof s !== 'object') return null;
+  const name = sanitizeStringField(s.name, 80);
+  if (!name) return null;
+  return {
+    name,
+    level: Validators.clampInt(s.level, 0, 9, 0),
+    school: sanitizeStringField(s.school, 30) || null,
+  };
+}
+
+function defaultSpellSlots() {
+  const slots = {};
+  for (const level of SPELL_LEVELS) slots[level] = { max: 0, current: 0 };
+  return slots;
+}
+
+function cloneSpellSlots(existing) {
+  const slots = {};
+  for (const level of SPELL_LEVELS) {
+    const e = existing && existing[level];
+    slots[level] = { max: e?.max || 0, current: e?.current || 0 };
+  }
+  return slots;
+}
+
+/** Editing the max slots per level (character modal). Raising max grants the extra slot(s) as
+ * available (so a brand-new character or one that just leveled up starts with full slots);
+ * lowering max clamps current down so it never exceeds the new cap. */
+function applySpellSlotMax(slots, maxInput) {
+  if (!maxInput || typeof maxInput !== 'object') return;
+  for (const level of SPELL_LEVELS) {
+    if (maxInput[level] === undefined) continue;
+    const oldMax = slots[level].max;
+    const newMax = Validators.clampInt(maxInput[level], 0, 99, oldMax);
+    slots[level].current =
+      newMax > oldMax ? Math.min(newMax, slots[level].current + (newMax - oldMax)) : Math.min(slots[level].current, newMax);
+    slots[level].max = newMax;
+  }
+}
+
+/** Spending/restoring slots (quick-edit) — clamped to [0, max] for that level. */
+function applySpellSlotCurrent(slots, currentInput) {
+  if (!currentInput || typeof currentInput !== 'object') return;
+  for (const level of SPELL_LEVELS) {
+    if (currentInput[level] === undefined) continue;
+    slots[level].current = Validators.clampInt(currentInput[level], 0, slots[level].max, slots[level].current);
+  }
+}
+
 export class HitPoints {
   constructor(current, max) {
     this.current = current;
@@ -225,6 +311,10 @@ export class Character {
     this.hp = HitPoints.default();
     this.abilityScores = {};
     this.statusEffects = [];
+    this.attacks = [];
+    this.features = [];
+    this.spells = [];
+    this.spellSlots = defaultSpellSlots();
     for (const key of ABILITY_KEYS) this.abilityScores[key] = 10;
     for (const field of CHARACTER_FIELDS) this[field.key] = field.default;
   }
@@ -238,6 +328,10 @@ export class Character {
     c.hp = HitPoints.clone(existing.hp);
     c.abilityScores = { ...existing.abilityScores };
     c.statusEffects = [...(existing.statusEffects || [])];
+    c.attacks = (existing.attacks || []).map((a) => ({ ...a }));
+    c.features = (existing.features || []).map((f) => ({ ...f }));
+    c.spells = (existing.spells || []).map((s) => ({ ...s }));
+    c.spellSlots = cloneSpellSlots(existing.spellSlots);
     return c;
   }
 
@@ -269,6 +363,24 @@ export class Character {
       c.statusEffects = list.filter((tag) => STATUS_EFFECTS[tag]).slice(0, Object.keys(STATUS_EFFECTS).length);
     }
 
+    if (input.attacks !== undefined) {
+      const list = Array.isArray(input.attacks) ? input.attacks : [];
+      c.attacks = list.map(sanitizeAttack).filter(Boolean).slice(0, 30);
+    }
+
+    if (input.features !== undefined) {
+      const list = Array.isArray(input.features) ? input.features : [];
+      c.features = list.map(sanitizeFeature).filter(Boolean).slice(0, 30);
+    }
+
+    if (input.spells !== undefined) {
+      const list = Array.isArray(input.spells) ? input.spells : [];
+      c.spells = list.map(sanitizeSpell).filter(Boolean).slice(0, 40);
+    }
+
+    if (input.spellSlotMax !== undefined) applySpellSlotMax(c.spellSlots, input.spellSlotMax);
+    if (input.spellSlots !== undefined) applySpellSlotCurrent(c.spellSlots, input.spellSlots);
+
     return c;
   }
 
@@ -282,6 +394,10 @@ export class Character {
       hp: this.hp.toJSON(),
       abilityScores: { ...this.abilityScores },
       statusEffects: [...this.statusEffects],
+      attacks: this.attacks.map((a) => ({ ...a })),
+      features: this.features.map((f) => ({ ...f })),
+      spells: this.spells.map((s) => ({ ...s })),
+      spellSlots: cloneSpellSlots(this.spellSlots),
     };
     for (const field of CHARACTER_FIELDS) out[field.key] = this[field.key];
     return out;
@@ -295,6 +411,7 @@ export class MonsterInstance {
     this.templateId = null;
     this.hp = HitPoints.default();
     this.statusEffects = [];
+    this.spellSlots = defaultSpellSlots();
 
     // Monster definition
     this.name = 'Monster';
@@ -340,6 +457,7 @@ export class MonsterInstance {
 
     m.hp = HitPoints.clone(existing.hp);
     m.statusEffects = [...(existing.statusEffects || [])];
+    m.spellSlots = cloneSpellSlots(existing.spellSlots);
 
     m.abilityScores = existing.abilityScores ? { ...existing.abilityScores } : null;
 
@@ -434,6 +552,9 @@ export class MonsterInstance {
       m.statusEffects = list.filter((tag) => STATUS_EFFECTS[tag]).slice(0, Object.keys(STATUS_EFFECTS).length);
     }
 
+    if (input.spellSlotMax !== undefined) applySpellSlotMax(m.spellSlots, input.spellSlotMax);
+    if (input.spellSlots !== undefined) applySpellSlotCurrent(m.spellSlots, input.spellSlots);
+
     return m;
   }
 
@@ -445,6 +566,7 @@ export class MonsterInstance {
     return {
       id: this.id,
       templateId: this.templateId,
+      spellSlots: cloneSpellSlots(this.spellSlots),
 
       name: this.name,
       description: this.description,
