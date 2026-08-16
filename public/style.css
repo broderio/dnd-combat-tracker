@@ -389,14 +389,20 @@ body {
 }
 
 #monsters-sidebar {
-  width: auto;
-  flex-shrink: 0;
+  flex: 0 0 320px;
+  width: 320px;
+  min-width: 0;
+  max-width: 320px;
+
   background: var(--wood-light);
   border-left: 1px solid var(--line);
   padding: 18px;
+
   overflow-y: auto;
+  overflow-x: hidden;
   min-height: 0;
 }
+
 #monsters-sidebar h2 {
   font-size: 0.85rem;
   text-transform: uppercase;
@@ -405,6 +411,16 @@ body {
   border-bottom: 1px solid var(--line);
   padding-bottom: 6px;
   margin: 0 0 14px;
+
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+#monsters-view {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .char-sheet-card {
@@ -413,6 +429,8 @@ body {
   border-radius: 8px;
   padding: 14px;
   margin-bottom: 14px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .char-sheet-name {
@@ -576,12 +594,15 @@ body {
   display: flex;
   flex: 1;
   min-height: 0;
+  min-width: 0;
 }
 
-/* TODO: DM panel should be vertically scrollable. */
 #dm-panel {
+  flex: 0 0 300px;
   width: 300px;
-  flex-shrink: 0;
+  min-width: 0;
+  max-width: 300px;
+
   background: var(--wood-light);
   border-right: 1px solid var(--line);
   padding: 18px;
@@ -704,14 +725,16 @@ body {
 }
 
 #board-wrap {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 24px;
   overflow: hidden;
-  min-height: 0;
 }
 
 #board {
@@ -984,12 +1007,296 @@ body {
   padding-top: 8px;
   border-top: 1px solid var(--line);
 }
-.monster-attacks-list {
-  margin: 8px 0 0;
-  padding-left: 18px;
+
+/* ---------- Monster sheet ---------- */
+
+.char-sheet-card {
+  background: var(--wood);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 14px;
+
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+
+  overflow: hidden;
+}
+
+.char-sheet-name,
+.char-sheet-meta {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.monster-details {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+
+  margin-top: 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--wood-light);
+
+  /*
+   * Prevent anything inside this section from creating horizontal
+   * overflow.
+   */
+  overflow: hidden;
+}
+
+.monster-details summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+
+  padding: 6px 10px;
+
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--parchment-dim);
+
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.monster-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.monster-details summary::before {
+  content: '▸';
+  flex: 0 0 auto;
+
+  display: inline-block;
+  font-size: 0.7rem;
+  color: var(--ember-bright);
+  transition: transform 0.1s ease;
+}
+
+.monster-details[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.monster-details summary:hover {
+  color: var(--ember-bright);
+}
+
+.monster-details-body {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+
+  padding: 8px 10px 10px;
+  border-top: 1px solid var(--line);
+
   font-size: 0.8rem;
   color: var(--parchment-dim);
+  line-height: 1.4;
+
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
+
+/*
+ * Every immediate child must be allowed to shrink.
+ */
+.monster-details-body > *,
+.monster-details-body > * > * {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* ---------- Attacks ---------- */
+.monster-attacks-list {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+
+  margin: 0;
+  padding-left: 18px;
+
+  font-size: 0.8rem;
+  color: var(--parchment-dim);
+
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.monster-attacks-list li {
+  min-width: 0;
+  max-width: 100%;
+
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* ---------- Features ---------- */
+
+.monster-feature {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+
+  margin-bottom: 8px;
+
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.monster-feature:last-child {
+  margin-bottom: 0;
+}
+
+.monster-feature-name {
+  font-weight: 700;
+  color: var(--parchment);
+
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.monster-feature-tag {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--ember-bright);
+  margin-left: 6px;
+}
+
+.monster-feature-desc {
+  margin-top: 2px;
+
+  min-width: 0;
+  max-width: 100%;
+
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* ---------- Spellcasting ---------- */
+
+.monster-spell-group {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+
+  margin-bottom: 6px;
+
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.monster-spell-group:last-child {
+  margin-bottom: 0;
+}
+
+.monster-spell-group-label {
+  font-weight: 700;
+  color: var(--parchment);
+  text-transform: capitalize;
+}
+
+/* ---------- Stat block ---------- */
+
+.monster-statblock-grid {
+  display: grid;
+
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 4px 12px;
+}
+
+.monster-statblock-grid > * {
+  min-width: 0;
+  max-width: 100%;
+
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.monster-statblock-grid strong {
+  color: var(--parchment);
+}
+
+/* ---------- Ability scores ---------- */
+
+.monster-details .char-sheet-abilities {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.monster-attack {
+  padding: 6px 0 8px;
+  border-bottom: 1px solid var(--line);
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.monster-attack:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.monster-attack-name {
+  font-weight: 700;
+  color: var(--parchment);
+  margin-bottom: 2px;
+}
+
+.monster-attack-details {
+  font-size: 0.72rem;
+  color: var(--parchment-dim);
+  opacity: 0.85;
+  margin-bottom: 3px;
+  overflow-wrap: anywhere;
+}
+
+.monster-attack-roll {
+  font-size: 0.78rem;
+  color: var(--parchment);
+}
+
+.monster-attack-roll strong {
+  color: var(--ember-bright);
+}
+
+.monster-attack-damage {
+  font-size: 0.78rem;
+  color: var(--parchment-dim);
+}
+
+.monster-attack-damage strong {
+  color: var(--parchment);
+}
+
 .quick-edit-hp {
   display: flex;
   align-items: center;

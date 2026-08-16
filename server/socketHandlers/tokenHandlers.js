@@ -40,8 +40,6 @@ export class TokenHandlers {
     this.io.emit(EVENTS.TOKEN_MOVED, { id, col: moved.col, row: moved.row });
   }
 
-  // DM-only: creates a fresh MonsterInstance from the dnd-data library and a
-  // token linked to it, in one request (see GameStateStore#addMonsterInstance).
   #handleAddMonsterToken({ templateId, color, col, row }) {
     if (!PermissionPolicy.canManageBoard(this.session)) return;
     const instance = this.gameState.addMonsterInstance(templateId);

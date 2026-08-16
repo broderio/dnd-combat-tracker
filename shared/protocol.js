@@ -48,9 +48,6 @@
  * @property {string[]} statusEffects
  *
  * @typedef {Object} AddMonsterTokenPayload - places a monster from the
- *   Phase 2 dnd-data library: server creates a fresh MonsterInstance (full
- *   HP, no status effects) from the given template and a token linked to it
- *   in one request, so a monster instance never exists without a token.
  * @property {string} templateId - a MonsterTemplate id (see server/monsterLibrary.js), e.g. "mon_42"
  * @property {string} color
  * @property {number} col

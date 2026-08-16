@@ -1,17 +1,3 @@
-// server/gameState.js
-//
-// Owns the in-memory board state (background image, grid config, tokens,
-// AoE overlays, turn-order tracker) for this single-table POC, plus the
-// token/overlay id counters. Any code that needs to read or mutate the board
-// goes through the `gameState` singleton (a `GameStateStore` instance)
-// instead of touching a shared `state` object directly — keeps server.js and
-// the socket handlers from all reaching into the same mutable variable.
-//
-// Persistence: the board is loaded from data/db.json (via the `db` instance
-// in server/db.js) once at construction, and re-saved after every mutation,
-// so the game can be resumed after a server restart (or at a later date)
-// without losing the map, grid, tokens, overlays, or initiative order.
-
 import { computeCondition, Grid, MonsterInstance, Overlay, Token, TurnOrder, Validators } from '../shared/schema.js';
 import { EVENTS } from '../shared/protocol.js';
 import { db } from './db.js';
@@ -51,10 +37,6 @@ export class GameStateStore {
 
     this.turnOrder = persisted?.turnOrder ? Object.assign(new TurnOrder(), persisted.turnOrder) : TurnOrder.default();
 
-    // monsterInstances[id] = MonsterInstance — placed from the read-only
-    // dnd-data library (see server/monsterLibrary.js). Instance HP/status is
-    // combat-mutable board state, so it's persisted here, alongside tokens,
-    // rather than in data/db.json's user/character records.
     this.monsterInstances = {};
     for (const [id, m] of Object.entries(persisted?.monsterInstances ?? {})) {
       this.monsterInstances[id] = MonsterInstance.clone(m);
@@ -226,15 +208,6 @@ export class GameStateStore {
     return Object.values(this.tokens).some((t) => t.id !== excludeTokenId && t.col === col && t.row === row);
   }
 
-  // ---------------- Monster instances (Phase 2 monster library) ----------------
-
-  /**
-   * Creates a fresh MonsterInstance from a `dnd-data` template (full HP,
-   * no status effects) and persists it — does NOT place a token; callers
-   * (see socketHandlers/monsterHandlers.js) create the instance and its
-   * token together in one request so a monster is never "in the library
-   * but not on the board" state that could confuse `combatantStatuses`.
-   */
   addMonsterInstance(templateId) {
     const template = monsterLibrary.getTemplate(templateId);
     if (!template) return null;

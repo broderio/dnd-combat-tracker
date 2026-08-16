@@ -1,24 +1,6 @@
-// server/monsterLibrary.js
-//
-// The one small adapter between the `dnd-data` npm package (11,463 local,
-// bundled JSON entries — no network calls, see package.json) and this app's
-// combat model. `dnd-data`'s `properties` bag isn't documented and isn't
-// consistent entry-to-entry (older/simpler entries carry only Category/Size/
-// Type/Alignment/Challenge Rating; richer ones — mostly 5e SRD content —
-// also carry AC/HP/Speed/data-*Num/data-Actions). This module normalizes
-// that into one `MonsterTemplate`-shaped object per entry, tolerating
-// missing fields, so the rest of the app (search endpoint, DM picker, token
-// placement) never has to know about `dnd-data`'s raw shape.
-//
-// Deliberately read-only reference data: no homebrew/custom monster editor,
-// and this module never mutates `monsters`.
-
 import { monsters } from 'dnd-data';
+import { MonsterInstance } from '../shared/schema.js';
 
-/**
- * Pulls the leading integer out of a string like "135 (18d10+36)" or
- * "17 (Natural Armor)". Falls back to `fallback` if nothing parses.
- */
 function parseLeadingInt(value, fallback = null) {
   if (typeof value === 'number') return value;
   if (typeof value !== 'string') return fallback;
@@ -26,16 +8,14 @@ function parseLeadingInt(value, fallback = null) {
   return match ? parseInt(match[0], 10) : fallback;
 }
 
-/**
- * `data-Actions` (and the Legendary/Reaction/Bonus Action variants) are a
- * JSON-encoded string, when present, shaped like
- * `[{ Name, Desc, "Type Attack"?, Type?, "Hit Bonus"?, Reach?, Target?,
- * Damage?, "Damage Type"? }, ...]`. Only entries that look like an actual
- * attack (have a "Hit Bonus" or "Damage") are kept — many are prose-only
- * traits/reactions with just a Name/Desc, which aren't useful as a
- * structured "attacks" list for the DM sidebar.
- */
-function parseAttacks(raw) {
+function parseXP(raw) {
+  if (typeof raw === 'number') return raw;
+  if (typeof raw !== 'string') return null;
+  const n = parseInt(raw.replace(/,/g, ''), 10);
+  return Number.isNaN(n) ? null : n;
+}
+
+function parseActions(raw) {
   if (!raw || typeof raw !== 'string') return [];
   let parsed;
   try {
@@ -45,58 +25,149 @@ function parseAttacks(raw) {
   }
   if (!Array.isArray(parsed)) return [];
   return parsed
-    .filter((a) => a && (a['Hit Bonus'] !== undefined || a['Damage'] !== undefined))
+    .filter((a) => a && a.Name)
     .map((a) => ({
-      name: a.Name || 'Attack',
+      name: a.Name,
       toHit: a['Hit Bonus'] !== undefined ? `+${a['Hit Bonus']}` : null,
+      attackType: a['Type Attack'] || null,
+      reach: a.Reach || null,
+      targets: a.Targets || null,
       damage: a.Damage || null,
       damageType: a['Damage Type'] || null,
       desc: a.Desc || '',
     }))
-    .slice(0, 10); // bounded — some entries have a long tail of minor options
+    .slice(0, 20); // bounded — some entries have a long tail of minor options
 }
 
-/**
- * Normalizes one raw `dnd-data` monster entry (by its index in the array,
- * used as a stable-enough id for this read-only, never-reordered dataset)
- * into the flat shape the rest of the app consumes.
- */
-function toTemplate(entry, index) {
-  const p = entry.properties || {};
+function parseFeatureList(raw) {
+  if (!raw || typeof raw !== 'string') return [];
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(parsed)) return [];
+  return parsed
+    .filter((f) => f && f.Name)
+    .map((f) => ({ name: f.Name, desc: f.Desc || '' }))
+    .slice(0, 20);
+}
+
+function parseSpellcasting(rawSpells, spellBookFallback, ability) {
+  let structured = null;
+  if (rawSpells && typeof rawSpells === 'string') {
+    try {
+      structured = JSON.parse(rawSpells);
+    } catch {
+      structured = null;
+    }
+  }
+  const hasStructured = structured && (structured.spells || structured.innate);
+  if (!hasStructured && !spellBookFallback) return null;
+
   return {
-    id: 'mon_' + index,
-    name: entry.name,
-    size: p.Size || '',
-    type: p.Type || '',
-    alignment: p.Alignment || '',
-    cr: p['data-CrNum'] ?? parseLeadingInt(p['Challenge Rating']),
-    ac: p['data-AcNum'] ?? parseLeadingInt(p.AC),
-    hpMax: p['data-HpNum'] ?? parseLeadingInt(p.HP),
-    speed: p.Speed || '',
-    attacks: parseAttacks(p['data-Actions']),
-    source: entry.book || entry.publisher || '',
+    ability: ability || null,
+    innate: (structured && structured.innate) || null,
+    spellsByLevel: (structured && structured.spells) || null,
+    spellList: spellBookFallback
+      ? spellBookFallback
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : null,
   };
 }
 
-/**
- * Owns the one-time normalization of the `dnd-data` array into
- * `MonsterTemplate`s, plus the bounded search/filter used by the monster
- * picker endpoint. Normalizing once at construction (not per-request) is
- * worth it at 11k entries; the raw `dnd-data` array and everything derived
- * from it stays server-side — only bounded, filtered results ever reach the
- * browser (see server/routes/monsters.js).
- */
+const ABILITY_KEYS = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+
+function parseAbilityScores(p) {
+  const scores = {};
+  let any = false;
+  for (const key of ABILITY_KEYS) {
+    const raw = p[key.toUpperCase()];
+    if (typeof raw === 'number') {
+      scores[key] = raw;
+      any = true;
+    }
+  }
+  return any ? scores : null;
+}
+
+function parseAbilityModifiers(p, scores) {
+  const mods = {};
+  let any = false;
+  for (const key of ABILITY_KEYS) {
+    const raw = p[`data-${key.toUpperCase()}-mod`];
+    if (typeof raw === 'string' && raw.trim()) {
+      mods[key] = raw.trim();
+      any = true;
+    } else if (scores && typeof scores[key] === 'number') {
+      const mod = Math.floor((scores[key] - 10) / 2);
+      mods[key] = mod >= 0 ? `+${mod}` : `${mod}`;
+      any = true;
+    }
+  }
+  return any ? mods : null;
+}
+
+function toTemplate(entry, index) {
+  const p = entry.properties || {};
+  const actions = parseActions(p['data-Actions']);
+  const attacks = actions.filter((a) => a.toHit !== null || a.damage !== null);
+  const abilityScores = parseAbilityScores(p);
+
+  const monster = MonsterInstance.default();
+
+  monster.id = 'mon_' + index;
+  monster.name = entry.name;
+  monster.description = entry.description || '';
+  monster.size = p.Size || '';
+  monster.type = p.Type || '';
+  monster.alignment = p.Alignment || '';
+  monster.cr = p['data-CrNum'] ?? parseLeadingInt(p['Challenge Rating']);
+  monster.ac = p['data-AcNum'] ?? parseLeadingInt(p.AC);
+  monster.hpMax = p['data-HpNum'] ?? parseLeadingInt(p.HP);
+  monster.hitDice = p['Hit Dice'] || null;
+  monster.speed = p.Speed || '';
+  monster.xp = parseXP(p['data-XP']);
+  monster.proficiencyBonus = parseLeadingInt(p.PB);
+  monster.passivePerception =
+    typeof p['Passive Perception'] === 'number' ? p['Passive Perception'] : parseLeadingInt(p['Passive Perception']);
+  monster.senses = p.Senses || null;
+  monster.skills = p.Skills || null;
+  monster.savingThrows = p['Saving Throws'] || null;
+  monster.languages = p.Languages || null;
+  monster.conditionImmunities = p['Condition Immunities'] || null;
+  monster.damageImmunities = p.Immunities || null;
+  monster.damageResistances = p.Resistances || null;
+  monster.damageVulnerabilities = p.Vulnerabilities || null;
+  monster.abilityScores = abilityScores;
+  monster.abilityModifiers = parseAbilityModifiers(p, abilityScores);
+  monster.traits = parseFeatureList(p['data-Traits']);
+  monster.actions = actions;
+  monster.attacks = attacks;
+  monster.bonusActions = parseFeatureList(p['data-Bonus Actions']);
+  monster.reactions = parseFeatureList(p['data-Reactions']);
+  monster.legendaryActions = parseFeatureList(p['data-Legendary Actions']);
+  monster.spellcasting = parseSpellcasting(p['data-Spells'], p['Spell Book'], p['Spellcasting Ability']);
+  monster.tokenImageUrl = p.Token || null;
+  monster.source = entry.book || entry.publisher || '';
+
+  const template = monster.toJSON();
+
+  delete template.hp;
+  delete template.statusEffects;
+  delete template.templateId;
+
+  return template;
+}
+
 export class MonsterLibrary {
   constructor(rawMonsters) {
-    // Only monsters with a usable AC, HP, speed, and at least one parsed
-    // attack are kept — `dnd-data` has many older/simpler entries that carry
-    // just Category/Size/Type/Alignment/Challenge Rating, which aren't
-    // playable as a placed combat token (no HP to track, no attacks to show
-    // the DM), so they're filtered out of the picker entirely rather than
-    // showing up as unusable search results.
     this.templates = rawMonsters
       .map((entry, index) => toTemplate(entry, index))
-      .filter((t) => t.ac !== null && t.hpMax !== null && t.speed && t.attacks.length > 0);
+      .filter((t) => t.ac !== null && t.hpMax !== null && t.speed);
     this.byId = new Map(this.templates.map((t) => [t.id, t]));
   }
 
@@ -104,12 +175,6 @@ export class MonsterLibrary {
     return this.byId.get(id) || null;
   }
 
-  /**
-   * `{ name, crMin, crMax, type, limit }`, all optional. Returns a bounded,
-   * lightweight summary list (no `attacks`/`source` — those are only needed
-   * once the DM is looking at one specific monster) capped at `limit`
-   * (default 50, max 200) so an unfiltered search can't ship a huge payload.
-   */
   search({ name, crMin, crMax, type, limit } = {}) {
     const nameNeedle = (name || '').trim().toLowerCase();
     const typeNeedle = (type || '').trim().toLowerCase();

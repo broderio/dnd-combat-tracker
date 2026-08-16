@@ -1,10 +1,3 @@
-// server/routes/monsters.js
-//
-// Read-only search over the local `dnd-data` monster library (see
-// server/monsterLibrary.js) for the DM's monster picker. No auth beyond
-// "you're using the app" — same trust level as /api/all-characters, and
-// there's no write path here at all (no homebrew editor).
-
 import { Router } from 'express';
 
 import { monsterLibrary } from '../monsterLibrary.js';

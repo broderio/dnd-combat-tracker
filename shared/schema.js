@@ -1,34 +1,5 @@
-// shared/schema.js
-//
-// Single source of truth for the shape, defaults, and validation of the app's
-// core domain objects: Character, Grid, and Token.
-//
-// This file is loaded by BOTH sides of the app, as the exact same file on disk:
-//   - the server loads it with a plain `import` (Node ESM, via `require`-free
-//     `import ... from './shared/schema.js'` in server-side files)
-//   - the browser loads it with `import ... from '/shared/schema.js'` inside a
-//     `<script type="module">` — the server exposes the `shared/` folder as a
-//     static route so the browser can fetch it directly (see server.js).
-//
-// Because it's the same file both places, adding a new character stat (for
-// example) means adding one entry to CHARACTER_FIELDS here — the form, the
-// validation/defaults, and the sheet rendering can all read from this list
-// instead of each hard-coding their own copy of "what fields exist".
-//
-// Browser note: this file intentionally avoids any Node-only APIs (no
-// `require`, no `fs`, no `path`) so it works unmodified in both environments.
-
-/** Ability score keys, in the conventional D&D order. */
 export const ABILITY_KEYS = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
 
-/**
- * Declarative list of the simple (non-nested) Character fields.
- * `kind` drives both validation (server) and form-input type (client, stage 3).
- *   - 'text'   -> validated as a trimmed string, capped at maxLength
- *   - 'int'    -> validated as an integer, clamped to [min, max]
- *   - 'color'  -> validated as a string, capped at maxLength (e.g. "#rrggbb" =
- * 7 chars)
- */
 export const CHARACTER_FIELDS = [
   {
     key: 'name',
@@ -52,28 +23,17 @@ export const CHARACTER_FIELDS = [
   },
 ];
 
-// `statusEffects` is deliberately NOT in CHARACTER_FIELDS above: it's a list
-// validated against the STATUS_EFFECTS vocabulary (see Character.fromInput),
-// not a simple scalar text/int/color field, and CHARACTER_FIELDS' `default`
-// values are shared object literals — an `[]` default there would alias the
-// same array across every Character instance instead of each getting its
-// own. Handled explicitly in the constructor/clone/fromInput instead, the
-// same way `hp` and `abilityScores` already are.
-
-/** Fields inside `character.hp`, each an int clamped to [min, max]. */
 export const HP_FIELDS = [
   { key: 'current', label: 'HP (current)', min: -9999, max: 9999, default: 10 },
   { key: 'max', label: 'HP (max)', min: 0, max: 9999, default: 10 },
 ];
 
-/** Fields inside `grid`. */
 export const GRID_FIELDS = [
   { key: 'cols', label: 'Columns', min: 1, max: 100, default: 20 },
   { key: 'rows', label: 'Rows', min: 1, max: 100, default: 15 },
   { key: 'cellSize', label: 'Cell size (px)', min: 10, max: 200, default: 40 },
 ];
 
-/** Fields inside `token`. */
 export const TOKEN_FIELDS = [
   { key: 'name', kind: 'text', label: 'Name', maxLength: 40, default: 'Token' },
   {
@@ -116,12 +76,6 @@ export function computeCondition(hp) {
   return 'healthy';
 }
 
-/**
- * The fixed vocabulary of status-effect tags the DM can toggle on a token
- * (standard 5e condition names). Kept as a flat list rather than free text so
- * the DM panel can render it as checkboxes and the board can render short
- * badges without guessing at arbitrary strings.
- */
 export const STATUS_EFFECTS = {
   blinded: {
     icon: 'visibility_off',
@@ -208,12 +162,6 @@ export const STATUS_EFFECTS = {
   },
 };
 
-/**
- * Area-of-effect overlay types — purely visual/organizational markers on the
- * board (e.g. "this area is on fire", "this is difficult terrain"). They do
- * NOT automatically apply any status effect to tokens inside them; the DM
- * still applies status effects manually via the quick-edit controls.
- */
 export const OVERLAY_TYPES = {
   fire: { label: 'Fire', color: '#e0703f' },
   water: { label: 'Water', color: '#3f7fe0' },
@@ -222,10 +170,8 @@ export const OVERLAY_TYPES = {
   generic: { label: 'Generic', color: '#9c9c9c' },
 };
 
-/** Shapes supported for an overlay, centered on `col`/`row`. */
 export const OVERLAY_SHAPES = ['circle', 'square'];
 
-/** Fields inside `overlay`. */
 export const OVERLAY_FIELDS = [
   { key: 'col', kind: 'int', label: 'Column', min: 0, max: 99, default: 0 },
   { key: 'row', kind: 'int', label: 'Row', min: 0, max: 99, default: 0 },
@@ -233,12 +179,6 @@ export const OVERLAY_FIELDS = [
   { key: 'label', kind: 'text', label: 'Label', maxLength: 40, default: '' },
 ];
 
-/**
- * Clamp `val` to an integer in [min, max], falling back to `fallback` if not a
- * number. Grouped as a `static` method on a class purely so this module
- * reads consistently with the rest of shared/schema.js (all classes now) —
- * there's no instance state to justify here, this is a pure function.
- */
 export class Validators {
   static clampInt(val, min, max, fallback) {
     const n = parseInt(val, 10);
@@ -247,7 +187,6 @@ export class Validators {
   }
 }
 
-/** Hit points, as a small value object shared by both Character and Token. */
 export class HitPoints {
   constructor(current, max) {
     this.current = current;
@@ -265,12 +204,6 @@ export class HitPoints {
     return new HitPoints(existing.current, existing.max);
   }
 
-  /**
-   * Validates a partial `{ current, max }` payload against `existing` (or
-   * schema defaults), clamping each provided field per HP_FIELDS. Shared by
-   * `Character.fromInput` and `Token.fromInput` so both domain objects' HP
-   * behaves identically.
-   */
   static fromInput(input, existing) {
     const hp = existing ? HitPoints.clone(existing) : HitPoints.default();
     for (const field of HP_FIELDS) {
@@ -286,7 +219,6 @@ export class HitPoints {
   }
 }
 
-/** A player character: stats, HP, ability scores. */
 export class Character {
   constructor() {
     this.id = null;
@@ -313,12 +245,6 @@ export class Character {
     return c;
   }
 
-  /**
-   * Merge + validate a partial Character payload (e.g. from a POST/PUT body)
-   * against `existing` (or schema defaults, if this is a new character).
-   * Every field is independently optional in `input`, so a partial-update PUT
-   * only touches the fields it sends.
-   */
   static fromInput(input, existing) {
     const c = existing ? Character.clone(existing) : new Character();
 
@@ -350,7 +276,6 @@ export class Character {
     return c;
   }
 
-  /** The qualitative, no-numbers condition safe to broadcast to non-owners. */
   condition() {
     return computeCondition(this.hp);
   }
@@ -367,103 +292,233 @@ export class Character {
   }
 }
 
-/**
- * A monster placed on the board from the Phase 2 `dnd-data` library — the
- * "Combatant" concept the design doc calls for, minimal enough to serve just
- * what combat needs. Deliberately NOT a rework of Character: it's a small,
- * separate class that happens to share the same `hp`/`statusEffects`/
- * `condition()` shape (and the same `computeCondition` function) so the DM
- * sidebar's quick-edit controls, the redacted broadcast, token rendering,
- * and initiative lookups can treat a MonsterInstance and a Character
- * identically wherever only combat state matters (see GameStateStore's
- * combatant lookup and public/js/views/combatantEditor.js).
- *
- * `templateId`/`name`/`ac`/`speed`/`cr`/`type`/`size`/`attacks`/`source` are
- * a read-only snapshot taken from the `dnd-data` entry at placement time
- * (see server/monsterLibrary.js) — this app has no homebrew monster editor,
- * so those fields are never re-validated from client input the way
- * Character's are. Only `hp` and `statusEffects` are ever edited after
- * placement.
- */
 export class MonsterInstance {
   constructor() {
+    // Identity / runtime state
     this.id = null;
     this.templateId = null;
-    this.name = 'Monster';
-    this.ac = null;
     this.hp = HitPoints.default();
     this.statusEffects = [];
-    this.speed = '';
-    this.cr = null;
-    this.type = '';
+
+    // Monster definition
+    this.name = 'Monster';
+    this.description = '';
     this.size = '';
-    this.attacks = []; // [{ name, toHit, damage, damageType, desc }]
+    this.type = '';
+    this.alignment = '';
+    this.cr = null;
+    this.ac = null;
+    this.hpMax = 10;
+    this.hitDice = null;
+    this.speed = '';
+    this.xp = null;
+    this.proficiencyBonus = null;
+    this.passivePerception = null;
+    this.senses = null;
+    this.skills = null;
+    this.savingThrows = null;
+    this.languages = null;
+    this.conditionImmunities = null;
+    this.damageImmunities = null;
+    this.damageResistances = null;
+    this.damageVulnerabilities = null;
+    this.abilityScores = null;
+    this.abilityModifiers = null;
+    this.traits = [];
+    this.actions = [];
+    this.attacks = [];
+    this.bonusActions = [];
+    this.reactions = [];
+    this.legendaryActions = [];
+    this.spellcasting = null;
+    this.tokenImageUrl = null;
     this.source = '';
   }
 
   /**
-   * Builds a brand-new instance from a monster template (see
-   * server/monsterLibrary.js's `MonsterTemplate` shape) — every instance
-   * starts at the template's full HP. `id` is assigned by the caller
-   * (GameStateStore), same as Token/Overlay ids.
+   * A brand-new MonsterInstance with schema defaults.
+   *
+   * This represents the complete shape of a monster. MonsterLibrary is
+   * responsible only for translating its source data into these fields.
    */
-  static fromTemplate(template) {
-    const m = new MonsterInstance();
-    m.templateId = template.id;
-    m.name = template.name;
-    m.ac = template.ac;
-    m.hp = new HitPoints(template.hpMax ?? 10, template.hpMax ?? 10);
-    m.speed = template.speed || '';
-    m.cr = template.cr ?? null;
-    m.type = template.type || '';
-    m.size = template.size || '';
-    m.attacks = template.attacks || [];
-    m.source = template.source || '';
-    return m;
+  static default() {
+    return new MonsterInstance();
   }
 
+  /**
+   * Deep-enough clone for the nested values owned by a monster definition.
+   * Arrays and their object entries are copied so instances cannot mutate
+   * the library's template data.
+   */
   static clone(existing) {
     const m = Object.assign(new MonsterInstance(), existing);
+
     m.hp = HitPoints.clone(existing.hp);
     m.statusEffects = [...(existing.statusEffects || [])];
-    m.attacks = existing.attacks.map((a) => ({ ...a }));
+
+    m.abilityScores = existing.abilityScores ? { ...existing.abilityScores } : null;
+
+    m.abilityModifiers = existing.abilityModifiers ? { ...existing.abilityModifiers } : null;
+
+    m.traits = (existing.traits || []).map((trait) => ({ ...trait }));
+    m.actions = (existing.actions || []).map((action) => ({ ...action }));
+    m.attacks = (existing.attacks || []).map((attack) => ({ ...attack }));
+    m.bonusActions = (existing.bonusActions || []).map((action) => ({ ...action }));
+    m.reactions = (existing.reactions || []).map((action) => ({ ...action }));
+    m.legendaryActions = (existing.legendaryActions || []).map((action) => ({ ...action }));
+
+    if (existing.spellcasting) {
+      m.spellcasting = {
+        ...existing.spellcasting,
+        innate: existing.spellcasting.innate ? { ...existing.spellcasting.innate } : null,
+        spellsByLevel: existing.spellcasting.spellsByLevel ? { ...existing.spellcasting.spellsByLevel } : null,
+        spellList: existing.spellcasting.spellList ? [...existing.spellcasting.spellList] : null,
+      };
+    }
+
     return m;
   }
 
   /**
-   * Partial update — only `hp` and `statusEffects` are ever accepted here
-   * (the DM sidebar quick-edit's only two controls for a monster instance);
-   * everything else is the immutable template snapshot from placement time.
+   * Builds a combat instance from a complete monster definition.
+   *
+   * The complete definition is copied into the instance as a snapshot.
+   * Runtime state (`hp`, `statusEffects`) is initialized independently.
    */
-  static fromInput(input, existing) {
-    const m = MonsterInstance.clone(existing);
-    if (input.hp) m.hp = HitPoints.fromInput(input.hp, m.hp);
-    if (input.statusEffects !== undefined) {
-      const list = Array.isArray(input.statusEffects) ? input.statusEffects : [];
-      m.statusEffects = list.filter((tag) => STATUS_EFFECTS[tag]).slice(0, Object.keys(STATUS_EFFECTS).length);
-    }
+  static fromTemplate(template) {
+    const m = new MonsterInstance();
+
+    m.templateId = template.id;
+    m.name = template.name;
+    m.description = template.description;
+    m.size = template.size;
+    m.type = template.type;
+    m.alignment = template.alignment;
+    m.cr = template.cr;
+    m.ac = template.ac;
+    m.hpMax = template.hpMax;
+    m.hitDice = template.hitDice;
+    m.speed = template.speed;
+    m.xp = template.xp;
+    m.proficiencyBonus = template.proficiencyBonus;
+    m.passivePerception = template.passivePerception;
+    m.senses = template.senses;
+    m.skills = template.skills;
+    m.savingThrows = template.savingThrows;
+    m.languages = template.languages;
+    m.conditionImmunities = template.conditionImmunities;
+    m.damageImmunities = template.damageImmunities;
+    m.damageResistances = template.damageResistances;
+    m.damageVulnerabilities = template.damageVulnerabilities;
+
+    m.abilityScores = template.abilityScores ? { ...template.abilityScores } : null;
+
+    m.abilityModifiers = template.abilityModifiers ? { ...template.abilityModifiers } : null;
+
+    m.traits = (template.traits || []).map((trait) => ({ ...trait }));
+    m.actions = (template.actions || []).map((action) => ({ ...action }));
+    m.attacks = (template.attacks || []).map((attack) => ({ ...attack }));
+    m.bonusActions = (template.bonusActions || []).map((action) => ({ ...action }));
+    m.reactions = (template.reactions || []).map((action) => ({ ...action }));
+    m.legendaryActions = (template.legendaryActions || []).map((action) => ({ ...action }));
+
+    m.spellcasting = template.spellcasting
+      ? {
+          ...template.spellcasting,
+          innate: template.spellcasting.innate ? { ...template.spellcasting.innate } : null,
+          spellsByLevel: template.spellcasting.spellsByLevel ? { ...template.spellcasting.spellsByLevel } : null,
+          spellList: template.spellcasting.spellList ? [...template.spellcasting.spellList] : null,
+        }
+      : null;
+
+    m.tokenImageUrl = template.tokenImageUrl;
+    m.source = template.source;
+
+    const hpMax = Validators.clampInt(template.hpMax, 0, 9999, 10);
+
+    m.hpMax = hpMax;
+    m.hp = new HitPoints(hpMax, hpMax);
+
     return m;
   }
 
-  /** The qualitative, no-numbers condition safe to broadcast to non-owners — identical to Character's. */
+  /**
+   * Partial update.
+   *
+   * A monster instance's definition is immutable after placement. Only
+   * combat-time state can be changed.
+   */
+  static fromInput(input, existing) {
+    const m = MonsterInstance.clone(existing);
+
+    if (input.hp) {
+      m.hp = HitPoints.fromInput(input.hp, m.hp);
+    }
+
+    if (input.statusEffects !== undefined) {
+      const list = Array.isArray(input.statusEffects) ? input.statusEffects : [];
+
+      m.statusEffects = list.filter((tag) => STATUS_EFFECTS[tag]).slice(0, Object.keys(STATUS_EFFECTS).length);
+    }
+
+    return m;
+  }
+
   condition() {
     return computeCondition(this.hp);
   }
 
+  /**
+   * Returns the complete monster definition in the same shape used by
+   * MonsterLibrary templates, plus the instance's runtime state.
+   */
   toJSON() {
     return {
       id: this.id,
       templateId: this.templateId,
+
       name: this.name,
+      description: this.description,
+      size: this.size,
+      type: this.type,
+      alignment: this.alignment,
+      cr: this.cr,
       ac: this.ac,
+      hpMax: this.hpMax,
+      hitDice: this.hitDice,
+      speed: this.speed,
+      xp: this.xp,
+      proficiencyBonus: this.proficiencyBonus,
+      passivePerception: this.passivePerception,
+      senses: this.senses,
+      skills: this.skills,
+      savingThrows: this.savingThrows,
+      languages: this.languages,
+      conditionImmunities: this.conditionImmunities,
+      damageImmunities: this.damageImmunities,
+      damageResistances: this.damageResistances,
+      damageVulnerabilities: this.damageVulnerabilities,
+      abilityScores: this.abilityScores ? { ...this.abilityScores } : null,
+      abilityModifiers: this.abilityModifiers ? { ...this.abilityModifiers } : null,
+      traits: this.traits.map((trait) => ({ ...trait })),
+      actions: this.actions.map((action) => ({ ...action })),
+      attacks: this.attacks.map((attack) => ({ ...attack })),
+      bonusActions: this.bonusActions.map((action) => ({ ...action })),
+      reactions: this.reactions.map((action) => ({ ...action })),
+      legendaryActions: this.legendaryActions.map((action) => ({ ...action })),
+      spellcasting: this.spellcasting
+        ? {
+            ...this.spellcasting,
+            innate: this.spellcasting.innate ? { ...this.spellcasting.innate } : null,
+            spellsByLevel: this.spellcasting.spellsByLevel ? { ...this.spellcasting.spellsByLevel } : null,
+            spellList: this.spellcasting.spellList ? [...this.spellcasting.spellList] : null,
+          }
+        : null,
+      tokenImageUrl: this.tokenImageUrl,
+      source: this.source,
+
       hp: this.hp.toJSON(),
       statusEffects: [...this.statusEffects],
-      speed: this.speed,
-      cr: this.cr,
-      type: this.type,
-      size: this.size,
-      attacks: this.attacks.map((a) => ({ ...a })),
-      source: this.source,
     };
   }
 }

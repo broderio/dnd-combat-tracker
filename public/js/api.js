@@ -30,7 +30,6 @@ export class ApiClient {
     return res.json();
   }
 
-  /** Bounded, filtered search over the local dnd-data monster library (DM-only feature). */
   static async searchMonsters({ name, crMin, crMax, type } = {}) {
     const params = new URLSearchParams();
     if (name) params.set('name', name);
