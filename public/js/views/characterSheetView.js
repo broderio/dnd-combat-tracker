@@ -5,6 +5,7 @@ import {
   buildFlatSpellList,
   buildAbilityScoreGrid,
   computeModifiers,
+  buildSpellSlotsRow,
   buildSheetCard,
 } from './sheetCardView.js';
 
@@ -25,6 +26,17 @@ function buildCharacterCard(character, { showEditButton, showQuickEdit, username
     editButtonEl.addEventListener('click', () => openCharacterModal(character, 'edit-in-game'));
   }
 
+  // Spell slots are self-service (a player spending their own slots mid-combat), so they're
+  // spendable both on the player's own sheet and from the DM roster — unlike HP quick-edit,
+  // which is DM-only.
+  const slotOwner = username || clientState.currentUsername;
+  const spellSlotsEl =
+    showEditButton || showQuickEdit
+      ? buildSpellSlotsRow(character.spellSlots, (level, nextCurrent) => {
+          ApiClient.updateCharacter(slotOwner, character.id, { spellSlots: { [level]: nextCurrent } });
+        })
+      : null;
+
   const card = buildSheetCard({
     name: character.name,
     meta: `Level ${character.level} ${character.race ? character.race + ' ' : ''}${character.class || ''}`,
@@ -33,6 +45,7 @@ function buildCharacterCard(character, { showEditButton, showQuickEdit, username
       ['HP', `${character.hp.current}/${character.hp.max}`],
     ],
     hp: character.hp,
+    spellSlotsEl,
     topAbilitiesEl: buildAbilityScoreGrid(character.abilityScores, computeModifiers(character.abilityScores)),
     notes: character.notes,
     quickEditEl: showQuickEdit ? buildQuickEditControls(username, character) : null,

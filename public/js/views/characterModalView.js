@@ -1,4 +1,4 @@
-import { Character } from '/shared/schema.js';
+import { Character, SPELL_LEVELS } from '/shared/schema.js';
 import { ApiClient } from '../api.js';
 import { clientState } from '../state.js';
 import { renderCharacterSelectList } from './characterSelectView.js';
@@ -9,6 +9,21 @@ const characterModalTitle = document.getElementById('character-modal-title');
 const cfCancelBtn = document.getElementById('cf-cancel-btn');
 const cfDeleteBtn = document.getElementById('cf-delete-btn');
 const cfSaveBtn = document.getElementById('cf-save-btn');
+
+const cfSpellSlotMaxGrid = document.getElementById('cf-spell-slot-max-grid');
+const cfSpellSlotMaxInputs = {};
+SPELL_LEVELS.forEach((level) => {
+  const label = document.createElement('label');
+  label.textContent = `Lvl ${level} `;
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.min = '0';
+  input.max = '99';
+  input.value = '0';
+  label.appendChild(input);
+  cfSpellSlotMaxGrid.appendChild(label);
+  cfSpellSlotMaxInputs[level] = input;
+});
 
 const cfClassInput = document.getElementById('cf-class');
 const cfRaceInput = document.getElementById('cf-race');
@@ -219,6 +234,10 @@ export class CharacterModalView {
     document.getElementById('cf-notes').value = c.notes || '';
     document.getElementById('cf-token-color').value = c.tokenColor || '#e63946';
 
+    SPELL_LEVELS.forEach((level) => {
+      cfSpellSlotMaxInputs[level].value = c.spellSlots?.[level]?.max ?? 0;
+    });
+
     this.attacks = (c.attacks || []).map((a) => ({ ...a }));
     this.spells = (c.spells || []).map((s) => ({ ...s }));
     this.features = (c.features || []).map((f) => ({ ...f }));
@@ -302,6 +321,9 @@ export class CharacterModalView {
       attacks: this.attacks,
       spells: this.spells,
       features: this.features,
+      spellSlotMax: Object.fromEntries(
+        SPELL_LEVELS.map((level) => [level, cfSpellSlotMaxInputs[level].value])
+      ),
     };
 
     try {

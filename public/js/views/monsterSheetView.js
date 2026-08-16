@@ -11,6 +11,7 @@ import {
   buildAbilityScoreGrid,
   buildRowsGrid,
   buildDescriptionContent,
+  buildSpellSlotsRow,
   buildSheetCard,
 } from './sheetCardView.js';
 
@@ -98,6 +99,9 @@ function buildMonsterCard(instance) {
       ['Speed', instance.speed || '—'],
     ],
     hp: instance.hp,
+    spellSlotsEl: buildSpellSlotsRow(instance.spellSlots, (level, nextCurrent) => {
+      socketClient.emitEvent(EVENTS.UPDATE_MONSTER_INSTANCE, { id: instance.id, spellSlots: { [level]: nextCurrent } });
+    }),
     quickEditEl,
     sections: [
       { title: 'Attacks', contentEl: buildAttacksList(instance.attacks), open: true, count: instance.attacks?.length },

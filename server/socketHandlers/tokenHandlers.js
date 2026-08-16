@@ -57,10 +57,10 @@ export class TokenHandlers {
     this.gameState.pushMonsterInstancesToDMs(this.io);
   }
 
-  // DM-only quick-edit of a placed monster instance's hp/statusEffects.
-  #handleUpdateMonsterInstance({ id, hp, statusEffects }) {
+  // DM-only quick-edit of a placed monster instance's hp/statusEffects/spell slots.
+  #handleUpdateMonsterInstance({ id, hp, statusEffects, spellSlots, spellSlotMax }) {
     if (!PermissionPolicy.canManageBoard(this.session)) return;
-    const updated = this.gameState.updateMonsterInstance(id, { hp, statusEffects });
+    const updated = this.gameState.updateMonsterInstance(id, { hp, statusEffects, spellSlots, spellSlotMax });
     if (!updated) return;
     this.io.emit(EVENTS.STATE, this.gameState.getState());
     this.gameState.pushMonsterInstancesToDMs(this.io);

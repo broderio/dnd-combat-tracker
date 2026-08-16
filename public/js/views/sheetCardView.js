@@ -9,7 +9,7 @@
 // Each view file is responsible for mapping its own data into these
 // generic pieces; this file only knows how to build DOM from them.
 
-import { computeCondition } from '/shared/schema.js';
+import { computeCondition, SPELL_LEVELS } from '/shared/schema.js';
 
 export function buildHpBar(hp) {
   const track = document.createElement('div');
@@ -21,6 +21,62 @@ export function buildHpBar(hp) {
   track.appendChild(fill);
   return track;
 }
+
+/**
+ * Renders one small bright-blue vertical rectangle per spell level that has
+ * slots (max > 0), stacked left-to-right directly under the HP bar. Each
+ * rectangle fills bottom-up in proportion to slots remaining (current/max),
+ * with the spell level printed centered on top of it. Left-click spends a
+ * slot (fill drops), right-click restores one (fill rises) — the same
+ * click-to-spend / right-click-to-undo pattern used nowhere else yet, so a
+ * tooltip spells it out.
+ *
+ * @param {Record<number, {max:number, current:number}>} spellSlots
+ * @param {(level: number, nextCurrent: number) => void} onChange
+ */
+export function buildSpellSlotsRow(spellSlots, onChange) {
+  if (!spellSlots) return null;
+  const levels = SPELL_LEVELS.filter((level) => (spellSlots[level]?.max || 0) > 0);
+  if (!levels.length) return null;
+
+  const row = document.createElement('div');
+  row.className = 'spell-slots-row';
+
+  levels.forEach((level) => {
+    const { max, current } = spellSlots[level];
+
+    const column = document.createElement('div');
+    column.className = 'spell-slot-column';
+
+    const track = document.createElement('div');
+    track.className = 'spell-slot-track';
+    track.title = `Level ${level} slots: ${current}/${max} — click to spend, right-click to restore`;
+
+    const fill = document.createElement('div');
+    fill.className = 'spell-slot-fill';
+    fill.style.height = `${max > 0 ? (current / max) * 100 : 0}%`;
+    track.appendChild(fill);
+
+    const label = document.createElement('div');
+    label.className = 'spell-slot-level-label';
+    label.textContent = level;
+    track.appendChild(label);
+
+    track.addEventListener('click', () => {
+      if (current > 0) onChange(level, current - 1);
+    });
+    track.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      if (current < max) onChange(level, current + 1);
+    });
+
+    column.appendChild(track);
+    row.appendChild(column);
+  });
+
+  return row;
+}
+
 
 export function abilityMod(score) {
   const mod = Math.floor((score - 10) / 2);
@@ -277,6 +333,8 @@ export function buildSheetCard(model) {
   }
 
   card.appendChild(buildHpBar(model.hp));
+
+  if (model.spellSlotsEl) card.appendChild(model.spellSlotsEl);
 
   if (model.topAbilitiesEl) card.appendChild(model.topAbilitiesEl);
 
