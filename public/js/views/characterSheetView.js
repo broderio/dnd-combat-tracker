@@ -16,8 +16,9 @@ import { openCharacterModal } from './characterModalView.js';
 
 const ownCharacterView = document.getElementById('own-character-view');
 const allCharactersView = document.getElementById('all-characters-view');
+const publicRosterView = document.getElementById('public-roster-view');
 
-function buildCharacterCard(character, { showEditButton, showQuickEdit, username }) {
+function buildCharacterCard(character, { showEditButton, showQuickEdit, username, readOnly } = {}) {
   let editButtonEl = null;
   if (showEditButton) {
     editButtonEl = document.createElement('button');
@@ -28,40 +29,46 @@ function buildCharacterCard(character, { showEditButton, showQuickEdit, username
 
   // Spell slots are self-service (a player spending their own slots mid-combat), so they're
   // spendable both on the player's own sheet and from the DM roster — unlike HP quick-edit,
-  // which is DM-only.
+  // which is DM-only. Read-only cards (other players' simplified stat blocks) get no callback.
   const slotOwner = username || clientState.currentUsername;
-  const spellSlotsEl =
-    showEditButton || showQuickEdit
-      ? buildSpellSlotsRow(character.spellSlots, (level, nextCurrent) => {
+  const spellSlotsEl = buildSpellSlotsRow(
+    character.spellSlots,
+    readOnly
+      ? null
+      : (level, nextCurrent) => {
           ApiClient.updateCharacter(slotOwner, character.id, { spellSlots: { [level]: nextCurrent } });
-        })
-      : null;
+        }
+  );
 
   const card = buildSheetCard({
     name: character.name,
-    meta: `Level ${character.level} ${character.race ? character.race + ' ' : ''}${character.class || ''}`,
-    stats: [
-      ['AC', character.ac],
-      ['HP', `${character.hp.current}/${character.hp.max}`],
-    ],
+    meta: readOnly ? null : `Level ${character.level} ${character.race ? character.race + ' ' : ''}${character.class || ''}`,
+    stats: readOnly
+      ? []
+      : [
+          ['AC', character.ac],
+          ['HP', `${character.hp.current}/${character.hp.max}`],
+        ],
     hp: character.hp,
     spellSlotsEl,
     topAbilitiesEl: buildAbilityScoreGrid(character.abilityScores, computeModifiers(character.abilityScores)),
-    notes: character.notes,
+    notes: readOnly ? null : character.notes,
     quickEditEl: showQuickEdit ? buildQuickEditControls(username, character) : null,
     editButtonEl,
-    sections: [
-      { title: 'Attacks', contentEl: buildAttacksList(character.attacks), count: character.attacks?.length },
-      { title: 'Features', contentEl: buildFeatureList(character.features), count: character.features?.length },
-      { title: 'Spells', contentEl: buildFlatSpellList(character.spells), count: character.spells?.length },
-    ],
+    sections: readOnly
+      ? []
+      : [
+          { title: 'Attacks', contentEl: buildAttacksList(character.attacks), count: character.attacks?.length },
+          { title: 'Features', contentEl: buildFeatureList(character.features), count: character.features?.length },
+          { title: 'Spells', contentEl: buildFlatSpellList(character.spells), count: character.spells?.length },
+        ],
   });
 
   return card;
 }
 
 function buildQuickEditControls(username, character) {
-  return sharedBuildQuickEditControls(character.hp, character.statusEffects, {
+  return sharedBuildQuickEditControls(character.hp, character.statusEffects, character.customStatusEffects, {
     onAdjustHp: (delta) => {
       const next = Math.max(-9999, Math.min(9999, character.hp.current + delta));
       ApiClient.updateCharacter(username, character.id, { hp: { current: next } });
@@ -78,14 +85,31 @@ function buildQuickEditControls(username, character) {
       else current.delete(effect);
       ApiClient.updateCharacter(username, character.id, { statusEffects: Array.from(current) });
     },
+    onAddCustomEffect: (label, color) => {
+      const existingKeys = new Set((character.customStatusEffects || []).map((e) => e.key));
+      let key = 'custom-' + label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-+|-+$)/g, '');
+      let n = 2;
+      while (existingKeys.has(key)) key = `${key}-${n++}`;
+      const nextCustom = [...(character.customStatusEffects || []), { key, label, color }];
+      const nextEffects = [...(character.statusEffects || []), key];
+      ApiClient.updateCharacter(username, character.id, {
+        customStatusEffects: nextCustom,
+        statusEffects: nextEffects,
+      });
+    },
   });
 }
-
 
 export function renderOwnCharacterView() {
   ownCharacterView.innerHTML = '';
   if (!clientState.activeCharacter) return;
-  ownCharacterView.appendChild(buildCharacterCard(clientState.activeCharacter, { showEditButton: true }));
+  ownCharacterView.appendChild(
+    buildCharacterCard(clientState.activeCharacter, {
+      showEditButton: true,
+      showQuickEdit: true,
+      username: clientState.currentUsername,
+    })
+  );
 }
 
 export function renderDMRoster() {
@@ -108,3 +132,27 @@ export function renderDMRoster() {
     );
   });
 }
+
+/** Read-only simplified stat blocks (HP, ability scores, spell slots) for every other online
+ * player's character — visible to players only (the DM already has the full roster). */
+export function renderPublicRoster() {
+  if (!publicRosterView) return;
+  publicRosterView.innerHTML = '';
+  const others = clientState.publicRoster.filter((entry) => entry.username !== clientState.currentUsername);
+  if (others.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'dm-roster-empty';
+    empty.textContent = 'No other players online yet.';
+    publicRosterView.appendChild(empty);
+    return;
+  }
+  others.forEach(({ username, character }) => {
+    const label = document.createElement('div');
+    label.className = 'char-sheet-meta';
+    label.style.marginBottom = '4px';
+    label.textContent = username;
+    publicRosterView.appendChild(label);
+    publicRosterView.appendChild(buildCharacterCard(character, { readOnly: true }));
+  });
+}
+

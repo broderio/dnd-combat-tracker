@@ -19,6 +19,7 @@ export const EVENTS = {
   PRESENCE: 'presence',
   YOUR_CHARACTER: 'your-character',
   ALL_CHARACTERS: 'all-characters',
+  PUBLIC_CHARACTERS: 'public-characters',
   PLAYERS_ONLINE: 'players-online',
   TOKEN_MOVED: 'token-moved',
   ALL_MONSTER_INSTANCES: 'all-monster-instances',

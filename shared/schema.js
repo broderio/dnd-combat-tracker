@@ -273,6 +273,33 @@ function applySpellSlotCurrent(slots, currentInput) {
   }
 }
 
+function slugify(label) {
+  return label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-+|-+$)/g, '')
+    .slice(0, 30);
+}
+
+// Custom status effects (e.g. Bless, Hunter's Mark) are defined per
+// character/monster instance rather than in a shared registry — simpler to
+// implement, and in practice each table's homebrew effects tend to live on
+// whoever applied them anyway. Keyed separately from STATUS_EFFECTS so a
+// custom effect can never collide with (or overwrite) a builtin one.
+const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
+
+function sanitizeCustomStatusEffect(e) {
+  if (!e || typeof e !== 'object') return null;
+  const label = sanitizeStringField(e.label, 30);
+  if (!label) return null;
+  const rawKey = sanitizeStringField(e.key, 40);
+  const slug = rawKey ? rawKey.replace(/^custom-/, '') : slugify(label);
+  const key = 'custom-' + slug;
+  if (key === 'custom-') return null;
+  const color = HEX_COLOR_RE.test(e.color) ? e.color : '#5c7a4f';
+  return { key, label, color };
+}
+
 export class HitPoints {
   constructor(current, max) {
     this.current = current;
@@ -311,6 +338,7 @@ export class Character {
     this.hp = HitPoints.default();
     this.abilityScores = {};
     this.statusEffects = [];
+    this.customStatusEffects = [];
     this.attacks = [];
     this.features = [];
     this.spells = [];
@@ -328,6 +356,7 @@ export class Character {
     c.hp = HitPoints.clone(existing.hp);
     c.abilityScores = { ...existing.abilityScores };
     c.statusEffects = [...(existing.statusEffects || [])];
+    c.customStatusEffects = (existing.customStatusEffects || []).map((e) => ({ ...e }));
     c.attacks = (existing.attacks || []).map((a) => ({ ...a }));
     c.features = (existing.features || []).map((f) => ({ ...f }));
     c.spells = (existing.spells || []).map((s) => ({ ...s }));
@@ -358,9 +387,16 @@ export class Character {
       }
     }
 
+    if (input.customStatusEffects !== undefined) {
+      const list = Array.isArray(input.customStatusEffects) ? input.customStatusEffects : [];
+      c.customStatusEffects = list.map(sanitizeCustomStatusEffect).filter(Boolean).slice(0, 20);
+    }
+
     if (input.statusEffects !== undefined) {
       const list = Array.isArray(input.statusEffects) ? input.statusEffects : [];
-      c.statusEffects = list.filter((tag) => STATUS_EFFECTS[tag]).slice(0, Object.keys(STATUS_EFFECTS).length);
+      const customKeys = new Set(c.customStatusEffects.map((e) => e.key));
+      const cap = Object.keys(STATUS_EFFECTS).length + customKeys.size;
+      c.statusEffects = list.filter((tag) => STATUS_EFFECTS[tag] || customKeys.has(tag)).slice(0, cap);
     }
 
     if (input.attacks !== undefined) {
@@ -394,6 +430,7 @@ export class Character {
       hp: this.hp.toJSON(),
       abilityScores: { ...this.abilityScores },
       statusEffects: [...this.statusEffects],
+      customStatusEffects: this.customStatusEffects.map((e) => ({ ...e })),
       attacks: this.attacks.map((a) => ({ ...a })),
       features: this.features.map((f) => ({ ...f })),
       spells: this.spells.map((s) => ({ ...s })),
@@ -411,6 +448,7 @@ export class MonsterInstance {
     this.templateId = null;
     this.hp = HitPoints.default();
     this.statusEffects = [];
+    this.customStatusEffects = [];
     this.spellSlots = defaultSpellSlots();
 
     // Monster definition
@@ -457,6 +495,7 @@ export class MonsterInstance {
 
     m.hp = HitPoints.clone(existing.hp);
     m.statusEffects = [...(existing.statusEffects || [])];
+    m.customStatusEffects = (existing.customStatusEffects || []).map((e) => ({ ...e }));
     m.spellSlots = cloneSpellSlots(existing.spellSlots);
 
     m.abilityScores = existing.abilityScores ? { ...existing.abilityScores } : null;
@@ -546,10 +585,16 @@ export class MonsterInstance {
       m.hp = HitPoints.fromInput(input.hp, m.hp);
     }
 
+    if (input.customStatusEffects !== undefined) {
+      const list = Array.isArray(input.customStatusEffects) ? input.customStatusEffects : [];
+      m.customStatusEffects = list.map(sanitizeCustomStatusEffect).filter(Boolean).slice(0, 20);
+    }
+
     if (input.statusEffects !== undefined) {
       const list = Array.isArray(input.statusEffects) ? input.statusEffects : [];
-
-      m.statusEffects = list.filter((tag) => STATUS_EFFECTS[tag]).slice(0, Object.keys(STATUS_EFFECTS).length);
+      const customKeys = new Set(m.customStatusEffects.map((e) => e.key));
+      const cap = Object.keys(STATUS_EFFECTS).length + customKeys.size;
+      m.statusEffects = list.filter((tag) => STATUS_EFFECTS[tag] || customKeys.has(tag)).slice(0, cap);
     }
 
     if (input.spellSlotMax !== undefined) applySpellSlotMax(m.spellSlots, input.spellSlotMax);
@@ -610,6 +655,7 @@ export class MonsterInstance {
 
       hp: this.hp.toJSON(),
       statusEffects: [...this.statusEffects],
+      customStatusEffects: this.customStatusEffects.map((e) => ({ ...e })),
     };
   }
 }

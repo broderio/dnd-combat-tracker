@@ -39,6 +39,7 @@ export class JoinHandler {
     this.roster.broadcastOnlinePlayers(this.io);
     this.roster.pushAllCharactersToDMs(this.io); // refresh every connected DM's
     // roster — covers first joins AND reconnects
+    this.roster.broadcastPublicCharacters(this.io);
 
     this.socket.broadcast.emit(EVENTS.PRESENCE, {
       message: `${this.session.name} connected as ${this.session.mode.toUpperCase()}`,
@@ -49,6 +50,7 @@ export class JoinHandler {
     this.roster.removeActivePlayer(this.socket.id);
     this.roster.broadcastOnlinePlayers(this.io);
     this.roster.pushAllCharactersToDMs(this.io);
+    this.roster.broadcastPublicCharacters(this.io);
     if (this.session.name) {
       this.socket.broadcast.emit(EVENTS.PRESENCE, { message: `${this.session.name} disconnected` });
     }

@@ -117,24 +117,27 @@ addTokenBtn.addEventListener('click', () => {
 /**
  * Fetches the full cross-user roster (GET /api/all-characters — already
  * existed for the DM roster feature) and fills the character-token picker
- * with one option per saved character, online or not. Called once on load;
- * good enough for a pre-session prep workflow where the roster doesn't
- * change while the picker is open.
+ * with one option per saved character, online or not. Called on load and
+ * again whenever the roster changes (ALL_CHARACTERS event, e.g. a new
+ * player joins/creates a character) so the DM doesn't have to refresh the
+ * page to place a token for a brand-new character.
  */
-async function loadCharacterTokenPicker() {
+export async function refreshCharacterTokenPicker() {
   const res = await ApiClient.getAllCharacters();
   if (!res.ok) return;
+  const previousSelection = new Set(Array.from(characterTokenPicker.selectedOptions).map((o) => o.value));
   characterTokenPicker.innerHTML = '';
   res.roster.forEach(({ username, characters }) => {
     characters.forEach((character) => {
       const opt = document.createElement('option');
       opt.value = JSON.stringify({ username, characterId: character.id });
       opt.textContent = `${character.name} (${username})`;
+      opt.selected = previousSelection.has(opt.value);
       characterTokenPicker.appendChild(opt);
     });
   });
 }
-loadCharacterTokenPicker();
+refreshCharacterTokenPicker();
 
 addCharacterTokenBtn.addEventListener('click', () => {
   const selections = Array.from(characterTokenPicker.selectedOptions).map((o) => JSON.parse(o.value));

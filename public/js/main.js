@@ -20,8 +20,8 @@ import { EVENTS } from '/shared/protocol.js';
 import { socketClient } from './socketClient.js';
 import { clientState } from './state.js';
 import { positionToken, refreshTokenVisual, render as renderBoard } from './views/boardView.js';
-import { renderDMRoster, renderOwnCharacterView } from './views/characterSheetView.js';
-import { renderOwnerDropdown, syncGridFormFromState } from './views/dmPanelView.js';
+import { renderDMRoster, renderOwnCharacterView, renderPublicRoster } from './views/characterSheetView.js';
+import { renderOwnerDropdown, refreshCharacterTokenPicker, syncGridFormFromState } from './views/dmPanelView.js';
 import { renderMonsterSidebar } from './views/monsterSheetView.js';
 import { renderOverlayList } from './views/overlayPanelView.js';
 import { renderInitiativeList, renderTurnBanner } from './views/turnTrackerView.js';
@@ -37,6 +37,7 @@ const monstersSidebar = document.getElementById('monsters-sidebar');
 const charSidebarTitle = document.getElementById('char-sidebar-title');
 const ownCharacterView = document.getElementById('own-character-view');
 const allCharactersView = document.getElementById('all-characters-view');
+const publicRosterSection = document.getElementById('public-roster-section');
 
 socketClient.onEvent('disconnect', () => {
   presenceLog.textContent = 'Connection lost — attempting to reconnect…';
@@ -55,13 +56,16 @@ socketClient.onEvent(EVENTS.JOINED, ({ mode, name }) => {
     charSidebarTitle.textContent = 'All Characters';
     ownCharacterView.classList.add('hidden');
     allCharactersView.classList.remove('hidden');
+    publicRosterSection.classList.add('hidden');
   } else {
     dmPanel.classList.add('hidden');
     monstersSidebar.classList.add('hidden');
     charSidebarTitle.textContent = 'Character Sheet';
     ownCharacterView.classList.remove('hidden');
     allCharactersView.classList.add('hidden');
+    publicRosterSection.classList.remove('hidden');
     renderOwnCharacterView();
+    renderPublicRoster();
   }
 });
 
@@ -77,6 +81,12 @@ socketClient.onEvent(EVENTS.YOUR_CHARACTER, (character) => {
 socketClient.onEvent(EVENTS.ALL_CHARACTERS, (roster) => {
   clientState.setDmRoster(roster);
   renderDMRoster();
+  refreshCharacterTokenPicker();
+});
+
+socketClient.onEvent(EVENTS.PUBLIC_CHARACTERS, (list) => {
+  clientState.setPublicRoster(list);
+  renderPublicRoster();
 });
 
 socketClient.onEvent(EVENTS.ALL_MONSTER_INSTANCES, (instances) => {

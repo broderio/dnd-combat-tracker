@@ -19,6 +19,7 @@ export class ClientState {
     this.activeCharacter = null; // the character this player picked for this session
     this.onlinePlayers = []; // [{username: str, characterName: str}] - name only (no stats), players and DMs
     this.dmRoster = []; // [{username: str, character: Character}] - full stats, DM only
+    this.publicRoster = []; // [{username: str, character: {name,hp,abilityScores,spellSlots}}] - read-only, all clients
     this.dmMonsterInstances = {}; // {id: MonsterInstance.toJSON()} - full stats, DM only
   }
 
@@ -44,6 +45,10 @@ export class ClientState {
 
   setDmRoster(roster) {
     this.dmRoster = roster;
+  }
+
+  setPublicRoster(list) {
+    this.publicRoster = list;
   }
 
   setDmMonsterInstances(instances) {

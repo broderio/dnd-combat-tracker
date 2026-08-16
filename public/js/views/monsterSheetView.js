@@ -66,7 +66,7 @@ function buildStatBlockContent(instance) {
 function buildMonsterCard(instance) {
   const crText = instance.cr === null || instance.cr === undefined ? '?' : instance.cr;
 
-  const quickEditEl = buildQuickEditControls(instance.hp, instance.statusEffects, {
+  const quickEditEl = buildQuickEditControls(instance.hp, instance.statusEffects, instance.customStatusEffects, {
     onAdjustHp: (delta) => {
       const next = Math.max(-9999, Math.min(9999, instance.hp.current + delta));
       socketClient.emitEvent(EVENTS.UPDATE_MONSTER_INSTANCE, { id: instance.id, hp: { current: next } });
@@ -84,6 +84,19 @@ function buildMonsterCard(instance) {
       socketClient.emitEvent(EVENTS.UPDATE_MONSTER_INSTANCE, {
         id: instance.id,
         statusEffects: Array.from(current),
+      });
+    },
+    onAddCustomEffect: (label, color) => {
+      const existingKeys = new Set((instance.customStatusEffects || []).map((e) => e.key));
+      let key = 'custom-' + label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-+|-+$)/g, '');
+      let n = 2;
+      while (existingKeys.has(key)) key = `${key}-${n++}`;
+      const nextCustom = [...(instance.customStatusEffects || []), { key, label, color }];
+      const nextEffects = [...(instance.statusEffects || []), key];
+      socketClient.emitEvent(EVENTS.UPDATE_MONSTER_INSTANCE, {
+        id: instance.id,
+        customStatusEffects: nextCustom,
+        statusEffects: nextEffects,
       });
     },
   });

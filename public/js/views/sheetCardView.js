@@ -10,6 +10,8 @@
 // generic pieces; this file only knows how to build DOM from them.
 
 import { computeCondition, SPELL_LEVELS } from '/shared/schema.js';
+import { EVENTS } from '/shared/protocol.js';
+import { socketClient } from '../socketClient.js';
 
 export function buildHpBar(hp) {
   const track = document.createElement('div');
@@ -32,7 +34,8 @@ export function buildHpBar(hp) {
  * tooltip spells it out.
  *
  * @param {Record<number, {max:number, current:number}>} spellSlots
- * @param {(level: number, nextCurrent: number) => void} onChange
+ * @param {((level: number, nextCurrent: number) => void)|null} [onChange] Omit/pass null for a
+ *   read-only display (e.g. another player's simplified stat block) — no click handlers attached.
  */
 export function buildSpellSlotsRow(spellSlots, onChange) {
   if (!spellSlots) return null;
@@ -49,8 +52,10 @@ export function buildSpellSlotsRow(spellSlots, onChange) {
     column.className = 'spell-slot-column';
 
     const track = document.createElement('div');
-    track.className = 'spell-slot-track';
-    track.title = `Level ${level} slots: ${current}/${max} — click to spend, right-click to restore`;
+    track.className = 'spell-slot-track' + (onChange ? '' : ' readonly');
+    track.title = onChange
+      ? `Level ${level} slots: ${current}/${max} — click to spend, right-click to restore`
+      : `Level ${level} slots: ${current}/${max}`;
 
     const fill = document.createElement('div');
     fill.className = 'spell-slot-fill';
@@ -62,13 +67,15 @@ export function buildSpellSlotsRow(spellSlots, onChange) {
     label.textContent = level;
     track.appendChild(label);
 
-    track.addEventListener('click', () => {
-      if (current > 0) onChange(level, current - 1);
-    });
-    track.addEventListener('contextmenu', (e) => {
-      e.preventDefault();
-      if (current < max) onChange(level, current + 1);
-    });
+    if (onChange) {
+      track.addEventListener('click', () => {
+        if (current > 0) onChange(level, current - 1);
+      });
+      track.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        if (current < max) onChange(level, current + 1);
+      });
+    }
 
     column.appendChild(track);
     row.appendChild(column);
@@ -130,6 +137,33 @@ export function buildDetailsSection(title, contentEl, { open = false, count = nu
   return details;
 }
 
+function parseToHitModifier(toHit) {
+  const m = /[+-]?\d+/.exec(toHit || '');
+  return m ? parseInt(m[0], 10) : 0;
+}
+
+function parseDamageDice(damage) {
+  const m = /(\d+)\s*d\s*(\d+)\s*([+-]\s*\d+)?/i.exec(damage || '');
+  if (!m) return null;
+  return {
+    count: parseInt(m[1], 10),
+    sides: parseInt(m[2], 10),
+    modifier: m[3] ? parseInt(m[3].replace(/\s+/g, ''), 10) : 0,
+  };
+}
+
+/** Rolls an attack's to-hit (d20 + modifier) and/or damage dice over the shared dice roller
+ * pipeline, so results show up in everyone's dice log same as a manual roll. */
+function rollAttack(attack) {
+  if (attack.toHit) {
+    socketClient.emitEvent(EVENTS.ROLL_DICE, { count: 1, sides: 20, modifier: parseToHitModifier(attack.toHit) });
+  }
+  if (attack.damage) {
+    const dmg = parseDamageDice(attack.damage);
+    if (dmg) socketClient.emitEvent(EVENTS.ROLL_DICE, { count: dmg.count, sides: dmg.sides, modifier: dmg.modifier });
+  }
+}
+
 export function buildAttacksList(attacks) {
   if (!attacks?.length) return null;
 
@@ -140,10 +174,24 @@ export function buildAttacksList(attacks) {
     const item = document.createElement('div');
     item.className = 'monster-attack';
 
+    const nameRow = document.createElement('div');
+    nameRow.className = 'monster-attack-name-row';
     const name = document.createElement('div');
     name.className = 'monster-attack-name';
     name.textContent = attack.name || 'Unnamed Attack';
-    item.appendChild(name);
+    nameRow.appendChild(name);
+
+    if (attack.toHit || attack.damage) {
+      const rollBtn = document.createElement('button');
+      rollBtn.type = 'button';
+      rollBtn.className = 'monster-attack-roll-btn';
+      rollBtn.textContent = 'Roll';
+      rollBtn.title = 'Roll to-hit and damage';
+      rollBtn.addEventListener('click', () => rollAttack(attack));
+      nameRow.appendChild(rollBtn);
+    }
+
+    item.appendChild(nameRow);
 
     const details = document.createElement('div');
     details.className = 'monster-attack-details';
