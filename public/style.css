@@ -527,12 +527,15 @@ body {
   cursor: pointer;
   user-select: none;
 }
+.spell-slot-track.readonly {
+  cursor: default;
+}
 .spell-slot-fill {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  background: #3f8fe0;
+  background: #4393c4;
   transition: height 0.1s ease-out;
 }
 .spell-slot-level-label {
@@ -845,6 +848,15 @@ body {
 #measure-layer {
   pointer-events: none;
 }
+#measure-layer {
+  /* .token-monster-badge/.token-effects use small positive z-index values,
+     and .token.dragging uses z-index:50 \u2014 those explicit z-indexes are
+     compared against #measure-layer's within the shared #board stacking
+     context regardless of DOM order, so without its own explicit z-index
+     the measure layer (and its labels) could paint underneath them. Give
+     it a z-index higher than any token-layer value so it's always on top. */
+  z-index: 90;
+}
 #grid-layer line {
   stroke: rgba(236, 226, 200, 0.35);
   stroke-width: 1;
@@ -1064,6 +1076,30 @@ body {
 .status-effect-option input {
   width: auto;
   margin: 0;
+}
+.status-effect-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+.quick-edit-custom-effect {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+.quick-edit-custom-effect .custom-effect-name {
+  flex: 1;
+  min-width: 0;
+}
+.quick-edit-custom-effect .custom-effect-color {
+  width: 28px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--line);
+  background: none;
 }
 .token-editor-character {
   margin-top: 10px;
@@ -1342,6 +1378,30 @@ body {
   font-weight: 700;
   color: var(--parchment);
   margin-bottom: 2px;
+}
+
+.monster-attack-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+.monster-attack-name-row .monster-attack-name {
+  margin-bottom: 0;
+}
+.monster-attack-roll-btn {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  padding: 2px 8px;
+  background: var(--ember);
+  color: var(--parchment);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.monster-attack-roll-btn:hover {
+  background: var(--ember-bright);
 }
 
 .monster-attack-details {

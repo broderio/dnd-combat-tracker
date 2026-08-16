@@ -365,6 +365,13 @@
           <div id="all-characters-view" class="hidden">
             <!-- filled in by client.js for the DM: one card per online player -->
           </div>
+
+          <!-- Players only: read-only simplified stat blocks (HP, ability scores,
+               spell slots) for every other online player's character. -->
+          <div id="public-roster-section" class="hidden">
+            <h2>Other Players</h2>
+            <div id="public-roster-view"></div>
+          </div>
         </aside>
 
         <!-- Monsters sidebar: DM-only, one card per placed monster instance -->

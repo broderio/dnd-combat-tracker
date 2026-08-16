@@ -88,22 +88,25 @@ export class GameStateStore {
     const statuses = {};
     for (const token of Object.values(this.tokens)) {
       if (!token.combatantId || statuses[token.combatantId]) continue;
-      let hp, statusEffects;
+      let hp, statusEffects, customStatusEffects;
       if (token.combatantType === 'monster') {
         const monster = this.monsterInstances[token.combatantId];
         if (!monster) continue;
         hp = monster.hp;
         statusEffects = monster.statusEffects;
+        customStatusEffects = monster.customStatusEffects;
       } else {
         const character = this.db.findCharacter(token.owner, token.combatantId);
         if (!character) continue;
         hp = character.hp;
         statusEffects = character.statusEffects;
+        customStatusEffects = character.customStatusEffects;
       }
       statuses[token.combatantId] = {
         combatantId: token.combatantId,
         condition: computeCondition(hp),
         statusEffects: statusEffects || [],
+        customStatusEffects: customStatusEffects || [],
       };
     }
     return statuses;

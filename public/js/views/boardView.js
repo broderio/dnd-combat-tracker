@@ -170,11 +170,12 @@ export class BoardView {
   #applyTokenVisualState(el, token) {
     const status = BoardView.#combatantStatus(token);
     const effects = status?.statusEffects || [];
+    const customEffects = status?.customStatusEffects || [];
     el.classList.toggle('hurt', status?.condition === 'hurt');
     el.classList.toggle('critical', status?.condition === 'critical');
     el.classList.toggle('dead', status?.condition === 'dead');
     el.classList.toggle('active-turn', token.id === this.#activeTurnTokenId());
-    this.#renderTokenEffects(el, effects);
+    this.#renderTokenEffects(el, effects, customEffects);
 
     const effectNames = effects.map((effect) => (typeof effect === 'string' ? effect : effect.name));
     const effectsText = effectNames.length ? ` [${effectNames.join(', ')}]` : '';
@@ -223,10 +224,12 @@ export class BoardView {
     });
   }
 
-  #renderTokenEffects(el, effects) {
+  #renderTokenEffects(el, effects, customEffects = []) {
     const oldContainer = el.querySelector('.token-effects');
     if (oldContainer) oldContainer.remove();
     if (!effects.length) return;
+
+    const customByKey = new Map(customEffects.map((e) => [e.key, e]));
 
     const container = document.createElement('div');
     container.className = 'token-effects';
@@ -236,10 +239,11 @@ export class BoardView {
       if (!effectName) return;
 
       const visual = STATUS_EFFECTS[effectName.toLowerCase()];
-      const icon = visual?.icon || 'help';
+      const custom = !visual ? customByKey.get(effectName) : null;
+      const icon = visual?.icon || 'auto_awesome';
       const badge = document.createElement('span');
       badge.className = 'token-effect';
-      badge.style.backgroundColor = visual?.background || '#555';
+      badge.style.backgroundColor = visual?.background || custom?.color || '#555';
       badge.style.color = visual?.color || '#fff';
 
       const iconEl = document.createElement('span');
@@ -247,7 +251,7 @@ export class BoardView {
       iconEl.textContent = icon;
 
       badge.appendChild(iconEl);
-      badge.title = effectName;
+      badge.title = custom?.label || effectName;
       container.appendChild(badge);
     });
 

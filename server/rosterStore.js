@@ -62,6 +62,25 @@ export class RosterStore {
     }
   }
 
+  // Read-only simplified stat block (HP, ability scores, spell slots) for every
+  // online player's character, sent to EVERY connected client — lets players
+  // check in on each other's status without exposing notes/attacks/features,
+  // and without granting any ability to modify another player's character.
+  broadcastPublicCharacters(io) {
+    const list = Array.from(this.activePlayers.values())
+      .filter((entry) => entry.character)
+      .map((entry) => ({
+        username: entry.username,
+        character: {
+          name: entry.character.name,
+          hp: entry.character.hp,
+          abilityScores: entry.character.abilityScores,
+          spellSlots: entry.character.spellSlots,
+        },
+      }));
+    io.emit(EVENTS.PUBLIC_CHARACTERS, list);
+  }
+
   /**
    * If the player this character belongs to is currently connected, push the
    * update to their own socket (so their sidebar refreshes) and to every DM
@@ -74,6 +93,7 @@ export class RosterStore {
       io.to(socketId).emit(EVENTS.YOUR_CHARACTER, character);
     }
     this.pushAllCharactersToDMs(io);
+    this.broadcastPublicCharacters(io);
   }
 }
 

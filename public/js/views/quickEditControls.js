@@ -16,9 +16,15 @@ import { STATUS_EFFECTS } from '/shared/schema.js';
 /**
  * @param {{current: number, max: number}} hp
  * @param {string[]} statusEffects
- * @param {{onAdjustHp: (delta: number) => void, onSetCurrentHp?: (current: number) => void, onSetMaxHp?: (max: number) => void, onToggleEffect: (effect: string, checked: boolean) => void}} handlers
+ * @param {{key:string,label:string,color:string}[]} customStatusEffects
+ * @param {{onAdjustHp: (delta: number) => void, onSetCurrentHp?: (current: number) => void, onSetMaxHp?: (max: number) => void, onToggleEffect: (effect: string, checked: boolean) => void, onAddCustomEffect?: (label: string, color: string) => void}} handlers
  */
-export function buildQuickEditControls(hp, statusEffects, { onAdjustHp, onSetCurrentHp, onSetMaxHp, onToggleEffect }) {
+export function buildQuickEditControls(
+  hp,
+  statusEffects,
+  customStatusEffects,
+  { onAdjustHp, onSetCurrentHp, onSetMaxHp, onToggleEffect, onAddCustomEffect }
+) {
   const box = document.createElement('div');
   box.className = 'char-sheet-quick-edit';
 
@@ -97,7 +103,49 @@ export function buildQuickEditControls(hp, statusEffects, { onAdjustHp, onSetCur
     label.append(cb, ' ' + effect);
     effectsGrid.appendChild(label);
   });
+  (customStatusEffects || []).forEach((custom) => {
+    const label = document.createElement('label');
+    label.className = 'status-effect-option';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = (statusEffects || []).includes(custom.key);
+    cb.addEventListener('change', () => onToggleEffect(custom.key, cb.checked));
+    const swatch = document.createElement('span');
+    swatch.className = 'status-effect-swatch';
+    swatch.style.backgroundColor = custom.color;
+    label.append(cb, swatch, ' ' + custom.label);
+    effectsGrid.appendChild(label);
+  });
   box.appendChild(effectsGrid);
+
+  if (onAddCustomEffect) {
+    const addRow = document.createElement('div');
+    addRow.className = 'quick-edit-custom-effect';
+
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.placeholder = 'Custom effect (e.g. Bless)';
+    nameInput.maxLength = 30;
+    nameInput.className = 'custom-effect-name';
+
+    const colorInput = document.createElement('input');
+    colorInput.type = 'color';
+    colorInput.value = '#5c7a4f';
+    colorInput.className = 'custom-effect-color';
+
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.textContent = '+ Add';
+    addBtn.addEventListener('click', () => {
+      const label = nameInput.value.trim();
+      if (!label) return;
+      onAddCustomEffect(label, colorInput.value);
+      nameInput.value = '';
+    });
+
+    addRow.append(nameInput, colorInput, addBtn);
+    box.appendChild(addRow);
+  }
 
   return box;
 }
