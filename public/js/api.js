@@ -20,6 +20,10 @@ export class ApiClient {
     return ApiClient.#sendJson(`/api/characters/${encodeURIComponent(username)}/${characterId}`, 'PUT', payload);
   }
 
+  static deleteCharacter(username, characterId) {
+    return ApiClient.#sendJson(`/api/characters/${encodeURIComponent(username)}/${characterId}`, 'DELETE', {});
+  }
+
   /** Full roster across all users (DM-only feature) */
   static async getAllCharacters() {
     const res = await fetch('/api/all-characters');
