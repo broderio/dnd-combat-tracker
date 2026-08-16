@@ -93,12 +93,6 @@ export const TOKEN_FIELDS = [
     default: null,
   },
   {
-    // References the id of the Character (and, from Phase 2 on, a monster
-    // instance) this token is a read-only projection of. HP and status
-    // effects are never stored here — see `computeCondition`/`GameStateStore`
-    // for how the board derives bloodied/status display from the source
-    // record instead. null for a bare DM-controlled token with no linked
-    // combatant record.
     key: 'combatantId',
     kind: 'text',
     label: 'Linked combatant id',
@@ -106,10 +100,6 @@ export const TOKEN_FIELDS = [
     default: null,
   },
   {
-    // Which store `combatantId` should be looked up in: 'character' (a
-    // player's saved Character, via server/db.js) or 'monster' (a
-    // MonsterInstance placed from the Phase 2 monster library, via
-    // GameStateStore#monsterInstances). null alongside a null combatantId.
     key: 'combatantType',
     kind: 'text',
     label: 'Linked combatant type',
@@ -118,16 +108,11 @@ export const TOKEN_FIELDS = [
   },
 ];
 
-/**
- * Given an HP-like `{ current, max }`, the qualitative condition safe to
- * broadcast to players who don't own this combatant: no numbers, just
- * 'healthy' | 'bloodied' | 'critical'. Single choke point for this
- * computation — see the redacted-broadcast note in ARCHITECTURE.md.
- */
 export function computeCondition(hp) {
   if (!hp || hp.max <= 0) return 'healthy';
-  if (hp.current <= 0) return 'critical';
-  if (hp.current / hp.max <= 0.5) return 'bloodied';
+  if (hp.current <= 0) return 'dead';
+  if (hp.current / hp.max <= 0.25) return 'critical';
+  if (hp.current / hp.max <= 0.5) return 'hurt';
   return 'healthy';
 }
 
@@ -296,11 +281,6 @@ export class HitPoints {
     return hp;
   }
 
-  /** True if at or below half max HP (the standard "bloodied" threshold). */
-  isBloodied() {
-    return this.max > 0 && this.current / this.max <= 0.5;
-  }
-
   toJSON() {
     return { current: this.current, max: this.max };
   }
@@ -368,11 +348,6 @@ export class Character {
     }
 
     return c;
-  }
-
-  /** True if at or below half max HP. */
-  isBloodied() {
-    return this.hp.isBloodied();
   }
 
   /** The qualitative, no-numbers condition safe to broadcast to non-owners. */

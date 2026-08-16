@@ -1,4 +1,4 @@
-import { ABILITY_KEYS } from '/shared/schema.js';
+import { computeCondition, ABILITY_KEYS } from '/shared/schema.js';
 import { buildQuickEditControls as sharedBuildQuickEditControls } from './quickEditControls.js';
 
 import { ApiClient } from '../api.js';
@@ -12,14 +12,6 @@ const allCharactersView = document.getElementById('all-characters-view');
 function abilityMod(score) {
   const mod = Math.floor((score - 10) / 2);
   return mod >= 0 ? `+${mod}` : `${mod}`;
-}
-
-function hpBarClass(current, max) {
-  if (max <= 0) return '';
-  const pct = current / max;
-  if (pct <= 0.25) return 'critical';
-  if (pct <= 0.5) return 'hurt';
-  return '';
 }
 
 function buildCharacterCard(character, { showEditButton, showQuickEdit, username }) {
@@ -44,7 +36,7 @@ function buildCharacterCard(character, { showEditButton, showQuickEdit, username
   hpTrack.className = 'hp-bar-track';
   const hpFill = document.createElement('div');
   const pct = character.hp.max > 0 ? Math.max(0, Math.min(100, (character.hp.current / character.hp.max) * 100)) : 0;
-  hpFill.className = 'hp-bar-fill ' + hpBarClass(character.hp.current, character.hp.max);
+  hpFill.className = 'hp-bar-fill ' + computeCondition(character.hp);
   hpFill.style.width = pct + '%';
   hpTrack.appendChild(hpFill);
 

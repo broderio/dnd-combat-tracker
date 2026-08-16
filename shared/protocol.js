@@ -44,7 +44,7 @@
  * @typedef {Object} CombatantStatus - the redacted, no-numbers public view
  *   of a linked combatant, broadcast to everyone as part of `state`
  * @property {string} combatantId
- * @property {'healthy'|'bloodied'|'critical'} condition
+ * @property {'healthy'|'hurt'|'critical'|'dead'} condition
  * @property {string[]} statusEffects
  *
  * @typedef {Object} AddMonsterTokenPayload - places a monster from the

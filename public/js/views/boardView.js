@@ -156,13 +156,6 @@ export class BoardView {
     });
   }
 
-  /**
-   * The redacted public status for this token's linked combatant (if any),
-   * as broadcast by the server in `combatantStatuses` — the only place this
-   * client learns whether a token is bloodied/afflicted. Never derived from
-   * a real HP number, since players other than the owner/DM never receive
-   * one for combatants they don't own (see ARCHITECTURE.md).
-   */
   static #combatantStatus(token) {
     if (!token.combatantId) return null;
     return clientState.board.combatantStatuses?.[token.combatantId] || null;
@@ -177,8 +170,9 @@ export class BoardView {
   #applyTokenVisualState(el, token) {
     const status = BoardView.#combatantStatus(token);
     const effects = status?.statusEffects || [];
-    const bloodied = status ? status.condition === 'bloodied' || status.condition === 'critical' : false;
-    el.classList.toggle('bloodied', bloodied);
+    el.classList.toggle('hurt', status?.condition === 'hurt');
+    el.classList.toggle('critical', status?.condition === 'critical');
+    el.classList.toggle('dead', status?.condition === 'dead');
     el.classList.toggle('active-turn', token.id === this.#activeTurnTokenId());
     this.#renderTokenEffects(el, effects);
 

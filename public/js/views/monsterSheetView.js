@@ -1,11 +1,4 @@
-// public/js/views/monsterSheetView.js
-//
-// DM-only "Monsters" sidebar (next to "All Characters"): one card per placed
-// MonsterInstance with the combat-relevant stats a DM actually needs mid-
-// fight — AC, speed, HP (current + editable max) with quick-edit, status
-// effects, and its attacks list — mirroring characterSheetView.js's card
-// pattern but for monsters instead of PCs.
-
+import { computeCondition } from '/shared/schema.js';
 import { EVENTS } from '/shared/protocol.js';
 
 import { socketClient } from '../socketClient.js';
@@ -15,23 +8,9 @@ import { buildQuickEditControls } from './quickEditControls.js';
 
 const monstersView = document.getElementById('monsters-view');
 
-/**
- * A short, stable label derived from a MonsterInstance's id (e.g.
- * "moninst_12" -> "#12") — shown both on this sidebar's card and on the
- * matching token on the board (see boardView.js) so the DM can tell at a
- * glance which token a given card refers to, and vice versa.
- */
 export function monsterBadgeLabel(combatantId) {
-  const match = /(\d+)$/.exec(combatantId || '');
+  const match = /(\d+)$/.exec(combatantId || ''); // e.g. "moninst_42" → "42"
   return match ? `#${match[1]}` : '';
-}
-
-function hpBarClass(current, max) {
-  if (max <= 0) return '';
-  const pct = current / max;
-  if (pct <= 0.25) return 'critical';
-  if (pct <= 0.5) return 'hurt';
-  return '';
 }
 
 function buildAttacksList(attacks) {
@@ -71,7 +50,7 @@ function buildMonsterCard(instance) {
   hpTrack.className = 'hp-bar-track';
   const hpFill = document.createElement('div');
   const pct = instance.hp.max > 0 ? Math.max(0, Math.min(100, (instance.hp.current / instance.hp.max) * 100)) : 0;
-  hpFill.className = 'hp-bar-fill ' + hpBarClass(instance.hp.current, instance.hp.max);
+  hpFill.className = 'hp-bar-fill ' + computeCondition(instance.hp);
   hpFill.style.width = pct + '%';
   hpTrack.appendChild(hpFill);
 

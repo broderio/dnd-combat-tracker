@@ -89,30 +89,11 @@ export class GameStateStore {
     };
   }
 
-  /**
-   * Replaces the ENTIRE board (background, grid, tokens + positions,
-   * overlays, turn order, monster instances, id counters) with a saved
-   * encounter's snapshot and persists it — used by `POST
-   * /api/encounters/:id/load` (Phase 3). Whatever was on the board before
-   * this call is gone, same as loading a save file.
-   */
   restoreSnapshot(snapshot) {
     this.#loadFromSnapshot(snapshot);
     this.#persist();
   }
 
-  /**
-   * The full board state, as broadcast verbatim to clients over the `state`
-   * event. `combatantStatuses` is the redacted, no-numbers public view of
-   * every linked combatant currently placed as a token (see
-   * #computeCombatantStatuses) — this is what lets every player render a
-   * token's bloodied glow/status icons (their own, another player's, or a
-   * monster's) without receiving anyone else's real HP number over the wire.
-   * Full private stats still only go out via `your-character` (owner) and
-   * `all-characters` (DM). Full MonsterInstance hp/statusEffects are
-   * likewise deliberately NOT included here — see `getMonsterInstancesJSON`/
-   * `pushMonsterInstancesToDMs`, DM-only, same privacy boundary as Character.
-   */
   getState() {
     return {
       background: this.background,
