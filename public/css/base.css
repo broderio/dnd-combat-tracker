@@ -1,0 +1,104 @@
+:root {
+  --ink: #1b1710;
+  --parchment: #ece2c8;
+  --parchment-dim: #d8caa4;
+  --wood: #2c2118;
+  --wood-light: #3d2f22;
+  --ember: #c1502e;
+  --ember-bright: #e0703f;
+  --moss: #5c7a4f;
+  --line: #5a4a36;
+  font-size: 16px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--wood);
+  color: var(--parchment);
+  font-family: 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.primary-btn,
+.secondary-btn,
+.toggle-btn {
+  cursor: pointer;
+  font-family: inherit;
+  border-radius: 6px;
+  border: none;
+  font-size: 0.95rem;
+}
+
+.primary-btn {
+  width: 100%;
+  padding: 12px;
+  background: var(--ember);
+  color: #fff;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.primary-btn:hover {
+  background: var(--ember-bright);
+}
+
+.secondary-btn {
+  width: 100%;
+  padding: 8px;
+  background: var(--wood);
+  border: 1px solid var(--line);
+  color: var(--parchment);
+  margin-top: 6px;
+}
+.secondary-btn:hover {
+  border-color: var(--ember);
+  color: var(--ember-bright);
+}
+
+.toggle-btn {
+  width: 100%;
+  padding: 8px;
+  background: var(--wood);
+  border: 1px solid var(--line);
+  color: var(--parchment);
+  margin-top: 6px;
+}
+.toggle-btn:hover,
+.toggle-btn.active {
+  border-color: var(--ember);
+  color: var(--ember-bright);
+}
+
+.checkbox-label {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+}
+.checkbox-label input {
+  width: auto;
+  margin: 0;
+}
+
+.link-btn {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 6px;
+  background: transparent;
+  border: none;
+  color: var(--parchment-dim);
+  text-decoration: underline;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.82rem;
+}
+.link-btn:hover {
+  color: var(--ember-bright);
+}

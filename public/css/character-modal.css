@@ -1,0 +1,129 @@
+/* ---------- Character create/edit modal ---------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 100;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 520px;
+  max-height: 88vh;
+  overflow-y: auto;
+  background: var(--wood-light);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 26px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+.modal-card h2 {
+  margin: 0 0 16px;
+  color: var(--ember-bright);
+}
+.modal-card h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--parchment-dim);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 6px;
+  margin: 18px 0 10px;
+}
+
+.char-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 14px;
+}
+.char-form-grid label:first-child {
+  grid-column: 1 / -1;
+}
+
+.char-form-grid label,
+.ability-grid label,
+.notes-label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--parchment-dim);
+  margin-bottom: 4px;
+}
+
+.char-form-grid input,
+.ability-grid input,
+.notes-label textarea {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px;
+  background: var(--wood);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  color: var(--parchment);
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+
+.ability-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+.ability-grid input {
+  text-align: center;
+  padding: 6px 4px;
+}
+
+.notes-label {
+  margin-top: 14px;
+}
+.notes-label textarea {
+  resize: vertical;
+}
+
+.cf-entry-list {
+  margin: 8px 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cf-entry-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--wood-light);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  color: var(--parchment-dim);
+}
+.cf-entry-row strong {
+  color: var(--parchment);
+}
+.cf-entry-remove-btn {
+  background: none;
+  border: none;
+  color: var(--ember-bright, #e63946);
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1;
+  padding: 2px 6px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+.modal-actions button {
+  width: auto;
+  padding: 10px 18px;
+}

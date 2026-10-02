@@ -1,0 +1,43 @@
+/* ---------- Quick-edit controls (HP +/-, step amount) ----------
+   Shared by the character sidebar quick-edit and the DM panel's
+   token/character quick-edit widgets. */
+.quick-edit-hp {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+}
+.quick-edit-hp button {
+  padding: 2px 8px;
+}
+.quick-edit-current-hp,
+.quick-edit-max-hp {
+  width: 54px;
+  padding: 2px 4px;
+  background: var(--wood);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--parchment);
+  font-family: inherit;
+}
+.quick-edit-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.quick-edit-step button {
+  padding: 2px 10px;
+  font-weight: 700;
+}
+.quick-edit-step-amount {
+  width: 48px;
+  padding: 2px 4px;
+  background: var(--wood);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--parchment);
+  font-family: inherit;
+  text-align: center;
+}

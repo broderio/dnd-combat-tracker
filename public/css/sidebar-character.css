@@ -1,0 +1,222 @@
+/* ---------- Character sidebar (in-game) ---------- */
+/* TODO: Make the character sidebar vertically scrollable. */
+#character-sidebar {
+  width: auto;
+  flex-shrink: 0;
+  background: var(--wood-light);
+  border-left: 1px solid var(--line);
+  padding: 18px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+#character-sidebar h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--parchment-dim);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 6px;
+  margin: 0 0 14px;
+}
+
+#monsters-sidebar {
+  flex: 0 0 320px;
+  width: 320px;
+  min-width: 0;
+  max-width: 320px;
+
+  background: var(--wood-light);
+  border-left: 1px solid var(--line);
+  padding: 18px;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+}
+
+#monsters-sidebar h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--parchment-dim);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 6px;
+  margin: 0 0 14px;
+
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+#monsters-view {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.char-sheet-card {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  background: var(--wood);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.char-sheet-name {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  font-weight: 700;
+  color: var(--ember-bright);
+  font-size: 1.05rem;
+}
+.char-sheet-meta {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  font-size: 0.8rem;
+  color: var(--parchment-dim);
+  margin: 2px 0 10px;
+}
+
+.char-sheet-stats {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 10px;
+  font-size: 0.85rem;
+}
+.char-sheet-stats div {
+  color: var(--parchment-dim);
+}
+.char-sheet-stats strong {
+  color: var(--parchment);
+}
+
+.hp-bar-track {
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.hp-bar-fill {
+  height: 100%;
+  background: var(--moss);
+}
+.hp-bar-fill.hurt {
+  background: var(--ember);
+}
+.hp-bar-fill.critical {
+  background: #8a2b1f;
+}
+
+.spell-slots-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.spell-slot-column {
+  display: flex;
+}
+.spell-slot-track {
+  position: relative;
+  width: 20px;
+  height: 34px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+}
+.spell-slot-track.readonly {
+  cursor: default;
+}
+.spell-slot-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #4393c4;
+  transition: height 0.1s ease-out;
+}
+.spell-slot-level-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--parchment);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+}
+
+.char-sheet-abilities {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.ability-pill {
+  text-align: center;
+  background: var(--wood-light);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 5px 2px;
+  font-size: 0.72rem;
+}
+.ability-pill .val {
+  display: block;
+  font-weight: 700;
+  color: var(--parchment);
+  font-size: 0.9rem;
+}
+
+.char-sheet-notes {
+  font-size: 0.78rem;
+  color: var(--parchment-dim);
+  white-space: pre-wrap;
+  line-height: 1.4;
+}
+
+.char-sheet-edit-btn {
+  width: 100%;
+  margin-top: 8px;
+  padding: 7px;
+  background: var(--wood-light);
+  border: 1px solid var(--line);
+  color: var(--parchment);
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.82rem;
+}
+.char-sheet-edit-btn:hover {
+  border-color: var(--ember);
+  color: var(--ember-bright);
+}
+
+.dm-roster-empty {
+  font-size: 0.82rem;
+  color: var(--parchment-dim);
+  opacity: 0.8;
+}
+
+/* DM sidebar quick-edit (current HP +/-, status toggles) — replaces the old
+   per-token HP/status editor now that tokens are a read-only projection of
+   their linked character. */
+.char-sheet-quick-edit {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}

@@ -1,0 +1,97 @@
+/* ---------- Dice roller (visible to both DM and players) ---------- */
+#dice-roller {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  width: 230px;
+  padding: 0;
+  background: var(--wood-light);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  z-index: 60;
+}
+#dice-roller-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--parchment-dim);
+}
+#dice-roller-header:active {
+  cursor: grabbing;
+}
+#dice-roller-header .material-icons {
+  font-size: 18px;
+  opacity: 0.6;
+}
+#dice-roller-title {
+  flex: 1;
+}
+#dice-roller-toggle {
+  background: none;
+  border: none;
+  color: var(--parchment-dim);
+  cursor: pointer;
+  padding: 0;
+  line-height: 0;
+}
+#dice-roller-toggle:hover {
+  color: var(--parchment);
+}
+#dice-roller-body {
+  padding: 10px;
+}
+#dice-roller.collapsed #dice-roller-body {
+  display: none;
+}
+.dice-quick-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.dice-quick-btn {
+  flex: 1 0 auto;
+  padding: 4px 6px;
+  font-size: 0.78rem;
+}
+.dice-custom-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+  font-size: 0.82rem;
+}
+.dice-custom-row input {
+  width: 40px;
+  padding: 2px 4px;
+  background: var(--wood);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--parchment);
+  font-family: inherit;
+}
+.dice-custom-row button {
+  margin-left: auto;
+  padding: 3px 10px;
+}
+#dice-log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 130px;
+  overflow-y: auto;
+  font-size: 0.76rem;
+  color: var(--parchment-dim);
+}
+#dice-log li {
+  padding: 2px 0;
+  border-bottom: 1px solid var(--line);
+}

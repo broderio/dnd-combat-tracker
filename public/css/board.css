@@ -1,0 +1,218 @@
+#board-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow: hidden;
+}
+
+#board {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  background-color: #24303a;
+  /* Stretched to exactly fill the board's box (not "cover"/"center"), so the
+     background lines up 1:1 with the grid/overlay/token coordinate system
+     instead of being cropped or centered independently of it. */
+  background-size: 100% 100%;
+  background-position: 0 0;
+  background-repeat: no-repeat;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--line);
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+#background-layer,
+#grid-layer,
+#overlay-layer,
+#token-layer,
+#measure-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+#grid-layer,
+#overlay-layer,
+#measure-layer {
+  pointer-events: none;
+}
+#measure-layer {
+  /* .token-monster-badge/.token-effects use small positive z-index values,
+     and .token.dragging uses z-index:50 — those explicit z-indexes are
+     compared against #measure-layer's within the shared #board stacking
+     context regardless of DOM order, so without its own explicit z-index
+     the measure layer (and its labels) could paint underneath them. Give
+     it a z-index higher than any token-layer value so it's always on top. */
+  z-index: 90;
+}
+#grid-layer line {
+  stroke: rgba(236, 226, 200, 0.35);
+  stroke-width: 1;
+}
+#grid-layer {
+  display: block;
+}
+
+.overlay-shape {
+  position: absolute;
+  opacity: 0.32;
+  border: 2px solid;
+}
+
+.measure-line {
+  stroke: var(--ember-bright);
+  stroke-width: 3;
+  stroke-dasharray: 6 4;
+}
+.measure-radius {
+  fill: rgba(224, 112, 63, 0.15);
+  stroke: var(--ember-bright);
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+}
+.measure-square {
+  fill: rgba(224, 112, 63, 0.15);
+  stroke: var(--ember-bright);
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+}
+.measure-label {
+  fill: var(--parchment);
+  font-size: 13px;
+  font-family: inherit;
+  text-anchor: middle;
+  paint-order: stroke;
+  stroke: var(--wood);
+  stroke-width: 4px;
+}
+
+.token {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 0, 0, 0.6);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  touch-action: none;
+  transition:
+    left 0.08s ease,
+    top 0.08s ease;
+}
+.token.draggable {
+  cursor: grab;
+}
+.token.locked {
+  cursor: default;
+  opacity: 0.92;
+}
+.token.dragging {
+  cursor: grabbing;
+  transition: none;
+  z-index: 50;
+}
+
+.token.hurt {
+  box-shadow: 0 0 10px 4px rgba(220, 40, 40, 0.5);
+}
+.token.critical {
+  box-shadow: 0 0 10px 4px rgba(220, 40, 40, 1);
+}
+.token.dead {
+  box-shadow: 0 0 10px 4px rgba(80, 80, 80, 1);
+}
+
+.token-monster-badge {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  min-width: 15px;
+  padding: 0 3px;
+  background: #2b2b2b;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 8px;
+  font-size: 0.6rem;
+  line-height: 15px;
+  text-align: center;
+  color: #fff;
+  pointer-events: none;
+  z-index: 3;
+}
+.token-effects {
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  pointer-events: none;
+  z-index: 2;
+}
+.token-effect {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+.token-effect-icon {
+  font-family: 'Material Symbols Rounded';
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 600;
+  font-style: normal;
+  font-variation-settings:
+    'FILL' 1,
+    'wght' 600,
+    'GRAD' 0,
+    'opsz' 20;
+}
+.token.active-turn {
+  outline: 3px solid #ffe08a;
+  outline-offset: 2px;
+}
+
+#board-toolbar {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+#board-toolbar button {
+  width: auto;
+  padding: 6px 12px;
+}
+#measure-tool-btn.active {
+  border-color: var(--ember);
+  color: var(--ember-bright);
+}
+
+#board-hint {
+  margin-top: 10px;
+  font-size: 0.85rem;
+  color: var(--parchment-dim);
+}
