@@ -1,16 +1,3 @@
-// public/js/views/quickEditControls.js
-//
-// The one shared "HP editing and status-effect toggles" quick-edit widget
-// used for both a Character (DM roster / player's own sheet, saved via REST)
-// and a MonsterInstance (Monsters sidebar, saved via a socket event) — same
-// UI, same STATUS_EFFECTS vocabulary, different save plumbing. Factored out
-// so Phase 2 doesn't grow a second parallel implementation of this control.
-//
-// HP editing supports two speeds: typing an exact current/max value directly
-// (for big changes — no more clicking -1 repeatedly), and a configurable
-// step +/- (defaults to 1, but the DM can bump it to 5/10/etc.) for quick
-// repeated damage/healing during combat.
-
 import { STATUS_EFFECTS } from '/shared/schema.js';
 
 /**

@@ -1,11 +1,3 @@
-// public/js/views/turnTrackerView.js
-//
-// Initiative/turn-order tracker: the DM sets each token's initiative and
-// advances turns; everyone (DM and players) sees a "Round N — X's turn"
-// banner. Like grid/tokens/overlays, the turn order lives on the server's
-// broadcast `state` — this module only renders it and sends the two DM
-// actions (SET_TURN_ORDER, NEXT_TURN).
-
 import { EVENTS } from '/shared/protocol.js';
 
 import { socketClient } from '../socketClient.js';

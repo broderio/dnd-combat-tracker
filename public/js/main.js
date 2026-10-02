@@ -1,14 +1,3 @@
-// public/js/main.js
-//
-// Entry point (loaded via `<script type="module" src="js/main.js">` in
-// index.html). Importing each view module runs its top-level DOM wiring
-// (event listeners) exactly once — ES modules are only evaluated the first
-// time they're imported, no matter how many other files import them.
-//
-// This file itself only owns the "game screen shell": showing/hiding the
-// DM panel vs. player board-hint, the role badge, and the presence log —
-// things that aren't really part of any single panel below.
-
 import './views/joinView.js';
 import './views/characterSelectView.js';
 import './views/characterModalView.js';

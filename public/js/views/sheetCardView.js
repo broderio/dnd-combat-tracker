@@ -1,14 +1,3 @@
-// public/js/views/sheetCardView.js
-//
-// Shared rendering building-blocks for the "stat card" shown in both the
-// Monsters sidebar (monsterSheetView.js) and the character sheets
-// (characterSheetView.js). Characters and monster instances have different
-// underlying schemas but the same *presentation* — name/meta/stats, an HP
-// bar, an ability score grid, quick-edit controls, and a handful of
-// collapsible <details> sections (attacks, features, spells, description).
-// Each view file is responsible for mapping its own data into these
-// generic pieces; this file only knows how to build DOM from them.
-
 import { computeCondition, SPELL_LEVELS } from '/shared/schema.js';
 import { EVENTS } from '/shared/protocol.js';
 import { socketClient } from '../socketClient.js';

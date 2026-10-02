@@ -345,7 +345,6 @@ body {
 }
 .notes-label textarea {
   resize: vertical;
-  font-family: inherit;
 }
 
 .cf-entry-list {
@@ -378,7 +377,6 @@ body {
   line-height: 1;
   padding: 2px 6px;
 }
-
 
 .modal-actions {
   display: flex;
@@ -456,21 +454,31 @@ body {
 }
 
 .char-sheet-card {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   background: var(--wood);
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 14px;
   margin-bottom: 14px;
-  min-width: 0;
-  max-width: 100%;
 }
 
 .char-sheet-name {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: normal;
   font-weight: 700;
   color: var(--ember-bright);
   font-size: 1.05rem;
 }
 .char-sheet-meta {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: normal;
   font-size: 0.8rem;
   color: var(--parchment-dim);
   margin: 2px 0 10px;
@@ -1119,28 +1127,6 @@ body {
 
 /* ---------- Monster sheet ---------- */
 
-.char-sheet-card {
-  background: var(--wood);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 14px;
-  margin-bottom: 14px;
-
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-
-  overflow: hidden;
-}
-
-.char-sheet-name,
-.char-sheet-meta {
-  min-width: 0;
-  max-width: 100%;
-  overflow-wrap: anywhere;
-  word-break: normal;
-}
-
 .monster-details {
   display: block;
   width: 100%;
@@ -1167,8 +1153,6 @@ body {
   width: 100%;
   min-width: 0;
   max-width: 100%;
-  box-sizing: border-box;
-
   padding: 6px 10px;
 
   font-size: 0.78rem;
@@ -1212,8 +1196,6 @@ body {
   width: 100%;
   min-width: 0;
   max-width: 100%;
-  box-sizing: border-box;
-
   padding: 8px 10px 10px;
   border-top: 1px solid var(--line);
 
