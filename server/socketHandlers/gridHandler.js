@@ -1,19 +1,12 @@
 import { EVENTS } from '../../shared/protocol.js';
-import { PermissionPolicy } from '../policy.js';
+import { BaseSocketHandler } from './baseSocketHandler.js';
 
-export class GridHandler {
-  constructor(io, socket, session, gameStateStore) {
-    this.io = io;
-    this.socket = socket;
-    this.session = session;
-    this.gameState = gameStateStore;
-  }
-
+export class GridHandler extends BaseSocketHandler {
   register() {
     this.socket.on(EVENTS.SET_GRID, (grid) => {
-      if (!PermissionPolicy.canManageBoard(this.session)) return;
+      if (!this.guard()) return;
       this.gameState.setGrid(grid);
-      this.io.emit(EVENTS.STATE, this.gameState.getState());
+      this.broadcastState();
     });
   }
 }

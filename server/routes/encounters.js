@@ -1,6 +1,6 @@
 import { Router } from 'express';
 
-import { EVENTS } from '../../shared/protocol.js';
+import { ROUTES } from '../../shared/protocol.js';
 
 export class EncountersController {
   constructor(io, database, gameStateStore) {
@@ -9,11 +9,11 @@ export class EncountersController {
     this.gameState = gameStateStore;
 
     this.router = Router();
-    this.router.get('/encounters', (req, res) => this.list(req, res));
-    this.router.post('/encounters', (req, res) => this.create(req, res));
-    this.router.put('/encounters/:id', (req, res) => this.update(req, res));
-    this.router.delete('/encounters/:id', (req, res) => this.remove(req, res));
-    this.router.post('/encounters/:id/load', (req, res) => this.load(req, res));
+    this.router.get(ROUTES.encounters, (req, res) => this.list(req, res));
+    this.router.post(ROUTES.encounters, (req, res) => this.create(req, res));
+    this.router.put(ROUTES.encounter, (req, res) => this.update(req, res));
+    this.router.delete(ROUTES.encounter, (req, res) => this.remove(req, res));
+    this.router.post(ROUTES.encounterLoad, (req, res) => this.load(req, res));
   }
 
   list(req, res) {
@@ -44,7 +44,7 @@ export class EncountersController {
     if (!encounter) return res.status(404).json({ ok: false, error: 'Encounter not found.' });
 
     this.gameState.restoreSnapshot(encounter.snapshot);
-    this.io.emit(EVENTS.STATE, this.gameState.getState());
+    this.gameState.broadcast(this.io);
     this.gameState.pushMonsterInstancesToDMs(this.io);
     res.json({ ok: true });
   }

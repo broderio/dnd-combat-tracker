@@ -1,12 +1,13 @@
 import { Router } from 'express';
 
+import { ROUTES } from '../../shared/protocol.js';
 import { monsterLibrary } from '../monsterLibrary.js';
 
 export class MonstersController {
   constructor() {
     this.router = Router();
-    this.router.get('/monsters', (req, res) => this.search(req, res));
-    this.router.get('/monsters/:id', (req, res) => this.getOne(req, res));
+    this.router.get(ROUTES.monsters, (req, res) => this.search(req, res));
+    this.router.get(ROUTES.monster, (req, res) => this.getOne(req, res));
   }
 
   search(req, res) {

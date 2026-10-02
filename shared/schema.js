@@ -175,6 +175,11 @@ export const OVERLAY_TYPES = {
   generic: { label: 'Generic', color: '#9c9c9c' },
 };
 
+/** Looks up an overlay type's `{ label, color }`, falling back to the generic type for unknown/missing types. */
+export function getOverlayMeta(type) {
+  return OVERLAY_TYPES[type] || OVERLAY_TYPES.generic;
+}
+
 export const OVERLAY_SHAPES = ['circle', 'square'];
 
 export const OVERLAY_FIELDS = [

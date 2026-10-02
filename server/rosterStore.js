@@ -1,4 +1,5 @@
 import { EVENTS } from '../shared/protocol.js';
+import { PermissionPolicy } from './policy.js';
 
 export class RosterStore {
   constructor() {
@@ -55,11 +56,7 @@ export class RosterStore {
       .filter((entry) => entry.character)
       .map((entry) => ({ username: entry.username, character: entry.character }));
 
-    for (const [, s] of io.sockets.sockets) {
-      if (s.data.session && s.data.session.mode === 'dm') {
-        s.emit(EVENTS.ALL_CHARACTERS, list);
-      }
-    }
+    PermissionPolicy.forEachDmSocket(io, (s) => s.emit(EVENTS.ALL_CHARACTERS, list));
   }
 
   // Read-only simplified stat block (HP, ability scores, spell slots) for every

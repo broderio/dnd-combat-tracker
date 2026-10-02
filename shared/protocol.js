@@ -15,6 +15,7 @@ export const EVENTS = {
 
   // server -> client
   JOINED: 'joined',
+  JOIN_ERROR: 'join-error',
   STATE: 'state',
   PRESENCE: 'presence',
   YOUR_CHARACTER: 'your-character',
@@ -25,3 +26,34 @@ export const EVENTS = {
   ALL_MONSTER_INSTANCES: 'all-monster-instances',
   DICE_ROLLED: 'dice-rolled',
 };
+
+// Single source of truth for REST route paths, shared by the Express
+// routers (mounted under API_BASE, except `uploadBackground` which is
+// mounted at the app root) and the client ApiClient. Patterns use Express's
+// `:param` syntax; use `buildRoute` to fill them in with real values.
+export const API_BASE = '/api';
+
+export const ROUTES = {
+  login: '/login',
+  dmLogin: '/dm-login',
+  characters: '/characters/:username',
+  character: '/characters/:username/:id',
+  allCharacters: '/all-characters',
+  monsters: '/monsters',
+  monster: '/monsters/:id',
+  characterOptionsClasses: '/character-options/classes',
+  characterOptionsRaces: '/character-options/races',
+  characterOptionsWeapons: '/character-options/weapons',
+  characterOptionsSpells: '/character-options/spells',
+  encounters: '/encounters',
+  encounter: '/encounters/:id',
+  encounterLoad: '/encounters/:id/load',
+};
+
+export const UPLOAD_BACKGROUND_ROUTE = '/upload-background';
+
+/** Fills `:param` placeholders in a ROUTES pattern with URL-encoded values. */
+export function buildRoute(pattern, params = {}) {
+  return pattern.replace(/:([a-zA-Z0-9_]+)/g, (_, key) => encodeURIComponent(params[key]));
+}
+

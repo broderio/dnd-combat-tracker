@@ -1,4 +1,4 @@
-import { OVERLAY_TYPES, STATUS_EFFECTS } from '/shared/schema.js';
+import { STATUS_EFFECTS, getOverlayMeta } from '/shared/schema.js';
 import { EVENTS } from '/shared/protocol.js';
 import { socketClient } from '../socketClient.js';
 import { clientState } from '../state.js';
@@ -136,7 +136,7 @@ export class BoardView {
     this.overlayLayer.innerHTML = '';
 
     Object.values(board.overlays).forEach((overlay) => {
-      const meta = OVERLAY_TYPES[overlay.type] || OVERLAY_TYPES.generic;
+      const meta = getOverlayMeta(overlay.type);
       const el = document.createElement('div');
       el.className = 'overlay-shape';
       el.title = overlay.label ? `${meta.label}: ${overlay.label}` : meta.label;

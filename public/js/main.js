@@ -43,6 +43,10 @@ socketClient.onEvent('disconnect', () => {
   presenceLog.textContent = 'Connection lost — attempting to reconnect…';
 });
 
+socketClient.onEvent(EVENTS.JOIN_ERROR, ({ error }) => {
+  presenceLog.textContent = error || 'Join failed.';
+});
+
 socketClient.onEvent(EVENTS.JOINED, ({ mode, name }) => {
   presenceLog.textContent = 'Connected.';
   joinScreen.classList.add('hidden');

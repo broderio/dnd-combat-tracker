@@ -15,16 +15,37 @@ export class Database {
   }
 
   loadDB() {
-    if (!fs.existsSync(this.dbPath)) return { users: {}, encounters: [] };
+    if (!fs.existsSync(this.dbPath)) {
+      const fresh = { users: {}, encounters: [], dm: { username: 'dm', pin: '0000' } };
+      this.saveDB(fresh);
+      return fresh;
+    }
     try {
       const raw = fs.readFileSync(this.dbPath, 'utf8');
       const parsed = JSON.parse(raw);
-      if (!parsed.users) parsed.users = {};
-      if (!parsed.encounters) parsed.encounters = [];
+      let dirty = false;
+      if (!parsed.users) {
+        parsed.users = {};
+        dirty = true;
+      }
+      if (!parsed.encounters) {
+        parsed.encounters = [];
+        dirty = true;
+      }
+      // Hardcoded DM credentials, manually edited in data/db.json — kept out
+      // of the regular `users` map so players logging in as themselves can
+      // never collide with (or enumerate) the DM account. Persisted back to
+      // disk immediately so the field is visible to edit even before anyone
+      // else triggers a save.
+      if (!parsed.dm || typeof parsed.dm !== 'object') {
+        parsed.dm = { username: 'dm', pin: '0000' };
+        dirty = true;
+      }
+      if (dirty) this.saveDB(parsed);
       return parsed;
     } catch (err) {
       console.error('Failed to read db.json, starting fresh:', err.message);
-      return { users: {}, encounters: [] };
+      return { users: {}, encounters: [], dm: { username: 'dm', pin: '0000' } };
     }
   }
 

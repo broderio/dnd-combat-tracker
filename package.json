@@ -5,7 +5,9 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --test tests/*.test.js",
+    "test:coverage": "node --test --experimental-test-coverage tests/*.test.js"
   },
   "dependencies": {
     "dnd-data": "^1.0.0",

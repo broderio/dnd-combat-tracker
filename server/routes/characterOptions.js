@@ -1,5 +1,6 @@
 import { Router } from 'express';
 
+import { ROUTES } from '../../shared/protocol.js';
 import { characterOptionsLibrary } from '../characterOptions.js';
 
 // Read-only lookups backing the character modal's searchable dropdowns —
@@ -9,10 +10,10 @@ import { characterOptionsLibrary } from '../characterOptions.js';
 export class CharacterOptionsController {
   constructor() {
     this.router = Router();
-    this.router.get('/character-options/classes', (req, res) => this.classes(req, res));
-    this.router.get('/character-options/races', (req, res) => this.races(req, res));
-    this.router.get('/character-options/weapons', (req, res) => this.weapons(req, res));
-    this.router.get('/character-options/spells', (req, res) => this.spells(req, res));
+    this.router.get(ROUTES.characterOptionsClasses, (req, res) => this.classes(req, res));
+    this.router.get(ROUTES.characterOptionsRaces, (req, res) => this.races(req, res));
+    this.router.get(ROUTES.characterOptionsWeapons, (req, res) => this.weapons(req, res));
+    this.router.get(ROUTES.characterOptionsSpells, (req, res) => this.spells(req, res));
   }
 
   classes(req, res) {

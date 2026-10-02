@@ -52,9 +52,21 @@
 
         <div id="dm-form" class="join-form hidden">
           <label
-            >DM name (optional)
-            <input id="dm-name" type="text" placeholder="e.g. Dungeon Master" maxlength="30" />
+            >DM username
+            <input id="dm-name" type="text" placeholder="e.g. dm" maxlength="30" autocomplete="username" />
           </label>
+          <label
+            >PIN
+            <input
+              id="dm-pin"
+              type="password"
+              inputmode="numeric"
+              placeholder="DM PIN"
+              maxlength="12"
+              autocomplete="current-password"
+            />
+          </label>
+          <p id="dm-login-error" class="form-error hidden"></p>
           <button id="join-dm-btn" class="primary-btn">Enter as DM</button>
         </div>
       </div>

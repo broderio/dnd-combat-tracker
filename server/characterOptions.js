@@ -19,13 +19,19 @@ function dedupeByName(entries) {
   return out;
 }
 
-function nameSearch(list, name, limit) {
+/**
+ * Case-insensitive substring search over a list of `{ name, ... }` entries,
+ * capped at `maxLimit` (or `defaultLimit` when no explicit limit is given).
+ * `map` controls what's returned per match — plain names for classes/races,
+ * full entries for weapons/spells.
+ */
+function nameSearch(list, { name, limit } = {}, { defaultLimit = 30, maxLimit = 200, map = (entry) => entry.name } = {}) {
   const needle = (name || '').trim().toLowerCase();
-  const cap = Math.max(1, Math.min(200, Number(limit) || 30));
+  const cap = Math.max(1, Math.min(maxLimit, Number(limit) || defaultLimit));
   const out = [];
   for (const entry of list) {
     if (needle && !entry.name.toLowerCase().includes(needle)) continue;
-    out.push(entry.name);
+    out.push(map(entry));
     if (out.length >= cap) break;
   }
   return out;
@@ -52,35 +58,19 @@ const spellEntries = dedupeByName(
 
 export class CharacterOptionsLibrary {
   searchClasses({ name, limit } = {}) {
-    return nameSearch(classNames, name, limit);
+    return nameSearch(classNames, { name, limit });
   }
 
   searchRaces({ name, limit } = {}) {
-    return nameSearch(raceNames, name, limit);
+    return nameSearch(raceNames, { name, limit });
   }
 
   searchWeapons({ name, limit } = {}) {
-    const needle = (name || '').trim().toLowerCase();
-    const cap = Math.max(1, Math.min(200, Number(limit) || 200));
-    const out = [];
-    for (const entry of weaponEntries) {
-      if (needle && !entry.name.toLowerCase().includes(needle)) continue;
-      out.push(entry);
-      if (out.length >= cap) break;
-    }
-    return out;
+    return nameSearch(weaponEntries, { name, limit }, { defaultLimit: 200, maxLimit: 200, map: (entry) => entry });
   }
 
   searchSpells({ name, limit } = {}) {
-    const needle = (name || '').trim().toLowerCase();
-    const cap = Math.max(1, Math.min(100, Number(limit) || 20));
-    const out = [];
-    for (const entry of spellEntries) {
-      if (needle && !entry.name.toLowerCase().includes(needle)) continue;
-      out.push(entry);
-      if (out.length >= cap) break;
-    }
-    return out;
+    return nameSearch(spellEntries, { name, limit }, { defaultLimit: 20, maxLimit: 100, map: (entry) => entry });
   }
 }
 
