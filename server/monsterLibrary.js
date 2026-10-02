@@ -1,201 +1,176 @@
-import { monsters } from 'dnd-data';
 import { MonsterInstance } from '../shared/schema.js';
-
-function parseLeadingInt(value, fallback = null) {
-  if (typeof value === 'number') return value;
-  if (typeof value !== 'string') return fallback;
-  const match = value.match(/-?\d+/);
-  return match ? parseInt(match[0], 10) : fallback;
-}
-
-function parseXP(raw) {
-  if (typeof raw === 'number') return raw;
-  if (typeof raw !== 'string') return null;
-  const n = parseInt(raw.replace(/,/g, ''), 10);
-  return Number.isNaN(n) ? null : n;
-}
-
-function parseActions(raw) {
-  if (!raw || typeof raw !== 'string') return [];
-  let parsed;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    return [];
-  }
-  if (!Array.isArray(parsed)) return [];
-  return parsed
-    .filter((a) => a && a.Name)
-    .map((a) => ({
-      name: a.Name,
-      toHit: a['Hit Bonus'] !== undefined ? `+${a['Hit Bonus']}` : null,
-      attackType: a['Type Attack'] || null,
-      reach: a.Reach || null,
-      targets: a.Targets || null,
-      damage: a.Damage || null,
-      damageType: a['Damage Type'] || null,
-      desc: a.Desc || '',
-    }))
-    .slice(0, 20); // bounded — some entries have a long tail of minor options
-}
-
-function parseFeatureList(raw) {
-  if (!raw || typeof raw !== 'string') return [];
-  let parsed;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    return [];
-  }
-  if (!Array.isArray(parsed)) return [];
-  return parsed
-    .filter((f) => f && f.Name)
-    .map((f) => ({ name: f.Name, desc: f.Desc || '' }))
-    .slice(0, 20);
-}
-
-function parseSpellcasting(rawSpells, spellBookFallback, ability) {
-  let structured = null;
-  if (rawSpells && typeof rawSpells === 'string') {
-    try {
-      structured = JSON.parse(rawSpells);
-    } catch {
-      structured = null;
-    }
-  }
-  const hasStructured = structured && (structured.spells || structured.innate);
-  if (!hasStructured && !spellBookFallback) return null;
-
-  return {
-    ability: ability || null,
-    innate: (structured && structured.innate) || null,
-    spellsByLevel: (structured && structured.spells) || null,
-    spellList: spellBookFallback
-      ? spellBookFallback
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean)
-      : null,
-  };
-}
+import { localRulesDatabase } from './localRules.js';
 
 const ABILITY_KEYS = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
 
-function parseAbilityScores(p) {
-  const scores = {};
-  let any = false;
-  for (const key of ABILITY_KEYS) {
-    const raw = p[key.toUpperCase()];
-    if (typeof raw === 'number') {
-      scores[key] = raw;
-      any = true;
-    }
-  }
-  return any ? scores : null;
+function signed(value) {
+  return Number(value) >= 0 ? `+${value}` : String(value);
 }
 
-function parseAbilityModifiers(p, scores) {
-  const mods = {};
-  let any = false;
-  for (const key of ABILITY_KEYS) {
-    const raw = p[`data-${key.toUpperCase()}-mod`];
-    if (typeof raw === 'string' && raw.trim()) {
-      mods[key] = raw.trim();
-      any = true;
-    } else if (scores && typeof scores[key] === 'number') {
-      const mod = Math.floor((scores[key] - 10) / 2);
-      mods[key] = mod >= 0 ? `+${mod}` : `${mod}`;
-      any = true;
-    }
-  }
-  return any ? mods : null;
+function formatSkills(skills) {
+  if (!Array.isArray(skills) || !skills.length) return null;
+  return skills.map((skill) => `${skill.name} ${signed(skill.bonus)}`).join(', ');
 }
 
-function toTemplate(entry, index) {
-  const p = entry.properties || {};
-  const actions = parseActions(p['data-Actions']);
-  const attacks = actions.filter((a) => a.toHit !== null || a.damage !== null);
-  const abilityScores = parseAbilityScores(p);
+function formatSavingThrows(scores) {
+  if (!scores || typeof scores !== 'object') return null;
+  const saves = ABILITY_KEYS
+    .filter((key) => Number.isFinite(scores[key]?.savingThrow))
+    .map((key) => `${key.toUpperCase()} ${signed(scores[key].savingThrow)}`);
+  return saves.length ? saves.join(', ') : null;
+}
 
+function mapAbility(entry) {
+  const damage = Array.isArray(entry.damage) ? entry.damage : [];
+  const attackRolls = Array.isArray(entry.attackRolls) ? entry.attackRolls : [];
+  const targeting = Array.isArray(entry.targeting) ? entry.targeting : [];
+  const damageText = damage.map((part) => part.raw || `${part.average ?? ''} (${part.formula || ''}) ${part.damageType || ''} damage`.trim()).filter(Boolean).join('; ');
+  const firstAttack = attackRolls[0];
+  const reach = targeting.find((target) => target.kind === 'reach' || target.kind === 'range');
+  return {
+    id: entry.id || null,
+    name: entry.name || 'Unnamed ability',
+    toHit: Number.isFinite(firstAttack?.bonus) ? signed(firstAttack.bonus) : null,
+    attackType: firstAttack?.kind || null,
+    reach: reach ? `${reach.distanceFeet ?? ''}${reach.longDistanceFeet ? `/${reach.longDistanceFeet}` : ''} ft.` : null,
+    targets: null,
+    damage: damageText || null,
+    damageType: damage.map((part) => part.damageType).filter(Boolean).join(', ') || null,
+    mechanicsSummary: entry.mechanicsSummary || null,
+    damageRolls: damage,
+    attackRolls,
+    savingThrows: entry.savingThrows || [],
+    desc: entry.description || '',
+  };
+}
+
+function mapAbilityList(list = []) {
+  return Array.isArray(list) ? list.filter((entry) => entry && entry.name).map(mapAbility) : [];
+}
+
+function mapSpellcasting(abilities) {
+  for (const section of Object.values(abilities || {})) {
+    for (const entry of Array.isArray(section) ? section : []) {
+      if (!entry?.spellcasting) continue;
+      const groups = {};
+      for (const group of entry.spellcasting.spellsByFrequency || []) {
+        if (group.frequency && group.spellNames?.length) groups[group.frequency] = group.spellNames;
+      }
+      return {
+        ability: entry.spellcasting.ability || null,
+        spellsByLevel: groups,
+        spellList: null,
+        saveDC: entry.spellcasting.saveDC ?? null,
+      };
+    }
+  }
+  return null;
+}
+
+function parsePassivePerception(senses) {
+  const match = String(senses || '').match(/passive perception\s+(\d+)/i);
+  return match ? Number(match[1]) : null;
+}
+
+function numericValue(value, key) {
+  if (Number.isFinite(value)) return value;
+  return Number.isFinite(value?.[key]) ? value[key] : null;
+}
+
+function toTemplate(summary, record) {
+  const armorClass = numericValue(record?.armorClass, 'value');
+  const hitPoints = numericValue(record?.hitPoints, 'average');
+  if (!record || record.detailAvailable === false || armorClass === null || hitPoints === null) {
+    return null;
+  }
+  const abilityScores = {};
+  const abilityModifiers = {};
+  for (const key of ABILITY_KEYS) {
+    const value = record.abilityScores?.[key];
+    if (Number.isFinite(value?.score)) abilityScores[key] = value.score;
+    if (Number.isFinite(value?.modifier)) abilityModifiers[key] = signed(value.modifier);
+  }
+  const abilities = record.abilities || {};
+  const actions = mapAbilityList(abilities.actions);
+  const attacks = actions.filter((action) => action.attackRolls.length || action.damageRolls.length);
   const monster = MonsterInstance.default();
 
-  monster.id = 'mon_' + index;
-  monster.name = entry.name;
-  monster.description = entry.description || '';
-  monster.size = p.Size || '';
-  monster.type = p.Type || '';
-  monster.alignment = p.Alignment || '';
-  monster.cr = p['data-CrNum'] ?? parseLeadingInt(p['Challenge Rating']);
-  monster.ac = p['data-AcNum'] ?? parseLeadingInt(p.AC);
-  monster.hpMax = p['data-HpNum'] ?? parseLeadingInt(p.HP);
-  monster.hitDice = p['Hit Dice'] || null;
-  monster.speed = p.Speed || '';
-  monster.xp = parseXP(p['data-XP']);
-  monster.proficiencyBonus = parseLeadingInt(p.PB);
-  monster.passivePerception =
-    typeof p['Passive Perception'] === 'number' ? p['Passive Perception'] : parseLeadingInt(p['Passive Perception']);
-  monster.senses = p.Senses || null;
-  monster.skills = p.Skills || null;
-  monster.savingThrows = p['Saving Throws'] || null;
-  monster.languages = p.Languages || null;
-  monster.conditionImmunities = p['Condition Immunities'] || null;
-  monster.damageImmunities = p.Immunities || null;
-  monster.damageResistances = p.Resistances || null;
-  monster.damageVulnerabilities = p.Vulnerabilities || null;
-  monster.abilityScores = abilityScores;
-  monster.abilityModifiers = parseAbilityModifiers(p, abilityScores);
-  monster.traits = parseFeatureList(p['data-Traits']);
+  monster.id = summary.id;
+  monster.name = record.name || summary.name;
+  monster.description = record.description || '';
+  monster.size = record.size || summary.size || '';
+  monster.type = record.creatureType || summary.creatureType || '';
+  monster.alignment = record.alignment || summary.alignment || '';
+  monster.cr = record.challengeRating?.numeric ?? summary.challengeRating?.numeric ?? null;
+  monster.ac = armorClass;
+  monster.hpMax = hitPoints;
+  monster.hitDice = record.hitPoints?.hitDice || null;
+  monster.speed = record.speed?.raw || '';
+  monster.xp = record.experiencePoints ?? null;
+  monster.proficiencyBonus = record.proficiencyBonus ?? record.challengeRating?.proficiencyBonus ?? null;
+  monster.passivePerception = parsePassivePerception(record.senses);
+  monster.senses = record.senses || null;
+  monster.skills = formatSkills(record.skills);
+  monster.savingThrows = formatSavingThrows(record.abilityScores);
+  monster.languages = Array.isArray(record.languages) ? record.languages.join(', ') : record.languages || null;
+  monster.conditionImmunities = Array.isArray(record.conditionImmunities) ? record.conditionImmunities.join(', ') : record.conditionImmunities || null;
+  monster.damageImmunities = Array.isArray(record.damageImmunities) ? record.damageImmunities.join(', ') : record.damageImmunities || null;
+  monster.damageResistances = Array.isArray(record.damageResistances) ? record.damageResistances.join(', ') : record.damageResistances || null;
+  monster.damageVulnerabilities = Array.isArray(record.damageVulnerabilities) ? record.damageVulnerabilities.join(', ') : record.damageVulnerabilities || null;
+  monster.abilityScores = Object.keys(abilityScores).length ? abilityScores : null;
+  monster.abilityModifiers = Object.keys(abilityModifiers).length ? abilityModifiers : null;
+  monster.traits = mapAbilityList(abilities.traits);
   monster.actions = actions;
   monster.attacks = attacks;
-  monster.bonusActions = parseFeatureList(p['data-Bonus Actions']);
-  monster.reactions = parseFeatureList(p['data-Reactions']);
-  monster.legendaryActions = parseFeatureList(p['data-Legendary Actions']);
-  monster.spellcasting = parseSpellcasting(p['data-Spells'], p['Spell Book'], p['Spellcasting Ability']);
-  monster.tokenImageUrl = p.Token || null;
-  monster.source = entry.book || entry.publisher || '';
+  monster.bonusActions = mapAbilityList(abilities.bonusActions);
+  monster.reactions = mapAbilityList(abilities.reactions);
+  monster.legendaryActions = mapAbilityList(abilities.legendaryActions);
+  monster.spellcasting = record.spellcasting || mapSpellcasting(abilities);
+  monster.source = (record.publications || summary.publications || []).join(', ');
 
   const template = monster.toJSON();
-
   delete template.hp;
   delete template.statusEffects;
   delete template.templateId;
-
   return template;
 }
 
 export class MonsterLibrary {
-  constructor(rawMonsters) {
-    this.templates = rawMonsters
-      .map((entry, index) => toTemplate(entry, index))
-      .filter((t) => t.ac !== null && t.hpMax !== null && t.speed);
-    this.byId = new Map(this.templates.map((t) => [t.id, t]));
+  constructor(database = localRulesDatabase) {
+    this.database = database;
+    this.summaries = database.getCatalog('monsters').items.filter((entry) => entry.detailAvailable !== false);
+    this.byId = new Map(this.summaries.map((entry) => [entry.id, entry]));
   }
 
   getTemplate(id) {
-    return this.byId.get(id) || null;
+    const summary = this.byId.get(id);
+    if (!summary) return null;
+    const record = this.database.getRecord(summary.path);
+    return toTemplate(summary, record);
   }
 
   search({ name, crMin, crMax, type, limit } = {}) {
-    const nameNeedle = (name || '').trim().toLowerCase();
-    const typeNeedle = (type || '').trim().toLowerCase();
+    const nameNeedle = (name || '').trim().toLocaleLowerCase();
+    const typeNeedle = (type || '').trim().toLocaleLowerCase();
     const min = crMin !== undefined && crMin !== '' ? Number(crMin) : null;
     const max = crMax !== undefined && crMax !== '' ? Number(crMax) : null;
     const cap = Math.max(1, Math.min(200, Number(limit) || 50));
-
     const results = [];
-    for (const t of this.templates) {
-      if (nameNeedle && !t.name.toLowerCase().includes(nameNeedle)) continue;
-      if (typeNeedle && t.type.toLowerCase() !== typeNeedle) continue;
-      if (min !== null && !Number.isNaN(min) && (t.cr === null || t.cr < min)) continue;
-      if (max !== null && !Number.isNaN(max) && (t.cr === null || t.cr > max)) continue;
+    for (const entry of this.summaries) {
+      const cr = entry.challengeRating?.numeric ?? null;
+      if (nameNeedle && !entry.name.toLocaleLowerCase().includes(nameNeedle)) continue;
+      if (typeNeedle && !(entry.creatureType || '').toLocaleLowerCase().includes(typeNeedle)) continue;
+      if (min !== null && !Number.isNaN(min) && (cr === null || cr < min)) continue;
+      if (max !== null && !Number.isNaN(max) && (cr === null || cr > max)) continue;
       results.push({
-        id: t.id,
-        name: t.name,
-        size: t.size,
-        type: t.type,
-        cr: t.cr,
-        ac: t.ac,
-        hpMax: t.hpMax,
+        id: entry.id,
+        name: entry.name,
+        size: entry.size || '',
+        type: entry.creatureType || '',
+        cr,
+        ac: entry.armorClass ?? null,
+        hpMax: entry.hitPoints ?? null,
+        source: (entry.publications || []).join(', '),
       });
       if (results.length >= cap) break;
     }
@@ -203,4 +178,4 @@ export class MonsterLibrary {
   }
 }
 
-export const monsterLibrary = new MonsterLibrary(monsters);
+export const monsterLibrary = new MonsterLibrary();

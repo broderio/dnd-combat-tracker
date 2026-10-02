@@ -1,76 +1,69 @@
-import { classes, species, items, spells } from 'dnd-data';
+import { localRulesDatabase } from './localRules.js';
 
-// Mirrors monsterLibrary.js's approach of pre-processing the raw dnd-data
-// tables once at startup into small, search-friendly lists. Unlike monsters,
-// classes/races/weapons are almost entirely prose in this dataset (no
-// structured level/damage fields), so these only offer name lookups for
-// autocomplete — combat stats and class features are filled in by hand.
-// Spells are the exception: they do carry structured level/school fields.
-
-function dedupeByName(entries) {
-  const seen = new Set();
-  const out = [];
-  for (const entry of entries) {
-    const key = entry.name.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(entry);
-  }
-  return out;
-}
-
-/**
- * Case-insensitive substring search over a list of `{ name, ... }` entries,
- * capped at `maxLimit` (or `defaultLimit` when no explicit limit is given).
- * `map` controls what's returned per match — plain names for classes/races,
- * full entries for weapons/spells.
- */
 function nameSearch(list, { name, limit } = {}, { defaultLimit = 30, maxLimit = 200, map = (entry) => entry.name } = {}) {
-  const needle = (name || '').trim().toLowerCase();
+  const needle = String(name || '').trim().toLocaleLowerCase();
   const cap = Math.max(1, Math.min(maxLimit, Number(limit) || defaultLimit));
-  const out = [];
+  const results = [];
   for (const entry of list) {
-    if (needle && !entry.name.toLowerCase().includes(needle)) continue;
-    out.push(map(entry));
-    if (out.length >= cap) break;
+    if (needle && !entry.name.toLocaleLowerCase().includes(needle)) continue;
+    results.push(map(entry));
+    if (results.length >= cap) break;
   }
-  return out;
+  return results;
 }
 
-const classNames = dedupeByName(classes.filter((c) => c.name));
-const raceNames = dedupeByName(species.filter((s) => s.name));
-const weaponEntries = dedupeByName(
-  items
-    .filter((i) => i.name && i.properties && typeof i.properties['Item Type'] === 'string')
-    .filter((i) => i.properties['Item Type'].toLowerCase().includes('weapon'))
-    .map((i) => ({ name: i.name, description: i.description || '' }))
-);
-
-const spellEntries = dedupeByName(
-  spells
-    .filter((s) => s.name)
-    .map((s) => ({
-      name: s.name,
-      level: typeof s.properties?.Level === 'number' ? s.properties.Level : 0,
-      school: s.properties?.School || null,
-    }))
-);
+function getSources(record) {
+  return (record?.sources || []).map((source) => source.publication || source.publications?.join(', ') || source.title || source.id).filter(Boolean);
+}
 
 export class CharacterOptionsLibrary {
-  searchClasses({ name, limit } = {}) {
-    return nameSearch(classNames, { name, limit });
+  constructor(database = localRulesDatabase) {
+    this.database = database;
+    const manifest = database.getManifest();
+    this.classEntries = manifest.classes || [];
+    this.speciesEntries = database.getCatalog('species').items;
+    this.weaponEntries = database.getCatalog('equipment').items
+      .filter((entry) => entry.category === 'weapon')
+      .map((entry) => {
+        const record = database.getRecord(entry.path);
+        return {
+          id: entry.id,
+          name: entry.name,
+          description: record?.description || '',
+          damage: record?.damage?.raw || record?.properties?.damage || '',
+          damageType: record?.damage?.damageType || null,
+          weaponProperties: record?.weaponProperties || [],
+          mastery: record?.mastery || null,
+          sources: getSources(record),
+        };
+      });
+    this.spellEntries = database.getCatalog('spells').items;
   }
 
-  searchRaces({ name, limit } = {}) {
-    return nameSearch(raceNames, { name, limit });
+  searchClasses(options = {}) {
+    return nameSearch(this.classEntries, options);
   }
 
-  searchWeapons({ name, limit } = {}) {
-    return nameSearch(weaponEntries, { name, limit }, { defaultLimit: 200, maxLimit: 200, map: (entry) => entry });
+  searchRaces(options = {}) {
+    return nameSearch(this.speciesEntries, options);
   }
 
-  searchSpells({ name, limit } = {}) {
-    return nameSearch(spellEntries, { name, limit }, { defaultLimit: 20, maxLimit: 100, map: (entry) => entry });
+  searchWeapons(options = {}) {
+    return nameSearch(this.weaponEntries, options, { defaultLimit: 200, maxLimit: 200, map: (entry) => entry });
+  }
+
+  searchSpells(options = {}) {
+    return nameSearch(this.spellEntries, options, {
+      defaultLimit: 20,
+      maxLimit: 100,
+      map: (entry) => ({
+        id: entry.id,
+        name: entry.name,
+        level: Number.isInteger(entry.level) ? entry.level : 0,
+        school: entry.school || null,
+        sources: entry.publications || [],
+      }),
+    });
   }
 }
 

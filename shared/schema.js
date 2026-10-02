@@ -202,16 +202,146 @@ function sanitizeStringField(value, maxLength) {
   return String(value).trim().slice(0, maxLength);
 }
 
-// Attack/feature/spell combat stats aren't reliably parseable out of
-// dnd-data (weapon items carry prose, not structured to-hit/damage), so
-// players search dnd-data for a name to reference and fill in the rest by
-// hand — same reasoning the server applies to monster class-feature prose.
+const CHARACTER_BUILD_SCHEMA_VERSION = 1;
+const DEFAULT_RULES_DATABASE_SCHEMA_VERSION = 4;
+const ABILITY_SCORE_METHODS = new Set(['standard-array', 'point-buy', 'rolled', 'manual']);
+
+function sanitizeRuleId(value) {
+  const id = sanitizeStringField(value, 120);
+  return /^[a-zA-Z0-9][a-zA-Z0-9._:-]*$/.test(id) ? id : null;
+}
+
+function sanitizeIdList(value, limit = 100) {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.map(sanitizeRuleId).filter(Boolean))].slice(0, limit);
+}
+
+function defaultCharacterBuild() {
+  return {
+    schemaVersion: CHARACTER_BUILD_SCHEMA_VERSION,
+    ruleset: { edition: '2024', databaseSchemaVersion: DEFAULT_RULES_DATABASE_SCHEMA_VERSION },
+    speciesId: null,
+    backgroundId: null,
+    abilityScoreMethod: 'standard-array',
+    classes: [],
+    selections: [],
+    spells: [],
+    inventory: [],
+    proficiencies: { skills: [], tools: [], languages: [] },
+    roleplay: { alignment: '', personalityTraits: '', ideals: '', bonds: '', flaws: '', appearance: '' },
+    overrides: {},
+  };
+}
+
+function sanitizeCharacterBuild(input, existing) {
+  const defaults = defaultCharacterBuild();
+  const source = input && typeof input === 'object' ? input : {};
+  const previous = existing && typeof existing === 'object' ? existing : defaults;
+  const candidate = { ...defaults, ...previous, ...source };
+
+  const ruleset = { ...defaults.ruleset, ...(previous.ruleset || {}), ...(source.ruleset || {}) };
+  const build = {
+    schemaVersion: CHARACTER_BUILD_SCHEMA_VERSION,
+    speciesId: sanitizeRuleId(candidate.speciesId),
+    backgroundId: sanitizeRuleId(candidate.backgroundId),
+    abilityScoreMethod: ABILITY_SCORE_METHODS.has(candidate.abilityScoreMethod)
+      ? candidate.abilityScoreMethod
+      : defaults.abilityScoreMethod,
+    classes: [],
+    selections: [],
+    spells: [],
+    inventory: [],
+    proficiencies: {},
+    roleplay: {},
+    overrides: {},
+  };
+  build.ruleset = {
+    edition: sanitizeStringField(ruleset.edition, 20) || defaults.ruleset.edition,
+    databaseSchemaVersion: Validators.clampInt(
+      ruleset.databaseSchemaVersion,
+      1,
+      1000,
+      defaults.ruleset.databaseSchemaVersion
+    ),
+  };
+
+  const classEntries = Array.isArray(candidate.classes) ? candidate.classes : [];
+  let totalLevel = 0;
+  build.classes = [];
+  for (const entry of classEntries.slice(0, 13)) {
+    const classId = sanitizeRuleId(entry?.classId);
+    const remainingLevels = 20 - totalLevel;
+    if (!classId || remainingLevels < 1) continue;
+    const classLevel = Validators.clampInt(entry.classLevel, 1, remainingLevels, 1);
+    totalLevel += classLevel;
+    build.classes.push({
+      classId,
+      classLevel,
+      subclassId: sanitizeRuleId(entry.subclassId),
+    });
+  }
+
+  const selections = Array.isArray(candidate.selections) ? candidate.selections : [];
+  build.selections = selections
+    .map((selection) => ({
+      choiceId: sanitizeRuleId(selection?.choiceId),
+      selectedOptionIds: sanitizeIdList(selection?.selectedOptionIds, 100),
+    }))
+    .filter((selection) => selection.choiceId)
+    .slice(0, 200);
+
+  const spells = Array.isArray(candidate.spells) ? candidate.spells : [];
+  build.spells = spells
+    .map((spell) => ({
+      spellId: sanitizeRuleId(spell?.spellId),
+      status: ['known', 'prepared', 'always-prepared'].includes(spell?.status) ? spell.status : 'known',
+      sourceClassId: sanitizeRuleId(spell?.sourceClassId),
+    }))
+    .filter((spell) => spell.spellId)
+    .slice(0, 500);
+
+  const inventory = Array.isArray(candidate.inventory) ? candidate.inventory : [];
+  build.inventory = inventory
+    .map((entry) => ({
+      equipmentId: sanitizeRuleId(entry?.equipmentId),
+      quantity: Validators.clampInt(entry?.quantity, 1, 999, 1),
+      equipped: entry?.equipped === true,
+      notes: sanitizeStringField(entry?.notes, 300),
+    }))
+    .filter((entry) => entry.equipmentId)
+    .slice(0, 300);
+
+  const proficiencies = { ...defaults.proficiencies, ...(previous.proficiencies || {}), ...(source.proficiencies || {}) };
+  build.proficiencies = {
+    skills: sanitizeIdList(proficiencies.skills, 100),
+    tools: sanitizeIdList(proficiencies.tools, 100),
+    languages: sanitizeIdList(proficiencies.languages, 100),
+  };
+
+  const roleplay = { ...defaults.roleplay, ...(previous.roleplay || {}), ...(source.roleplay || {}) };
+  build.roleplay = Object.fromEntries(
+    Object.keys(defaults.roleplay).map((key) => [key, sanitizeStringField(roleplay[key], 1000)])
+  );
+
+  const overrideSource = { ...(previous.overrides || {}), ...(source.overrides || {}) };
+  build.overrides = {};
+  for (const [key, range] of Object.entries({ armorClass: [0, 40], hitPointMaximum: [0, 9999], speed: [0, 1000] })) {
+    if (overrideSource[key] !== undefined && overrideSource[key] !== null && overrideSource[key] !== '') {
+      build.overrides[key] = Validators.clampInt(overrideSource[key], range[0], range[1], range[0]);
+    }
+  }
+  return build;
+}
+
+// Character-specific attack values such as the attack bonus remain editable;
+// linked equipment provides a stable rules reference and its base weapon data.
 function sanitizeAttack(a) {
   if (!a || typeof a !== 'object') return null;
   const name = sanitizeStringField(a.name, 60);
   if (!name) return null;
   return {
     name,
+    equipmentId: sanitizeRuleId(a.equipmentId),
     toHit: sanitizeStringField(a.toHit, 20) || null,
     damage: sanitizeStringField(a.damage, 40) || null,
     damageType: sanitizeStringField(a.damageType, 30) || null,
@@ -226,14 +356,14 @@ function sanitizeFeature(f) {
   return { name, desc: sanitizeStringField(f.desc, 1000) };
 }
 
-// Spells come from dnd-data search results, which do carry structured
-// level/school fields, so those are kept as-is rather than free text.
 function sanitizeSpell(s) {
   if (!s || typeof s !== 'object') return null;
   const name = sanitizeStringField(s.name, 80);
   if (!name) return null;
   return {
     name,
+    spellId: sanitizeRuleId(s.spellId),
+    source: sanitizeStringField(s.source, 200) || null,
     level: Validators.clampInt(s.level, 0, 9, 0),
     school: sanitizeStringField(s.school, 30) || null,
   };
@@ -348,6 +478,7 @@ export class Character {
     this.features = [];
     this.spells = [];
     this.spellSlots = defaultSpellSlots();
+    this.build = defaultCharacterBuild();
     for (const key of ABILITY_KEYS) this.abilityScores[key] = 10;
     for (const field of CHARACTER_FIELDS) this[field.key] = field.default;
   }
@@ -366,6 +497,7 @@ export class Character {
     c.features = (existing.features || []).map((f) => ({ ...f }));
     c.spells = (existing.spells || []).map((s) => ({ ...s }));
     c.spellSlots = cloneSpellSlots(existing.spellSlots);
+    c.build = sanitizeCharacterBuild(existing.build, null);
     return c;
   }
 
@@ -421,6 +553,7 @@ export class Character {
 
     if (input.spellSlotMax !== undefined) applySpellSlotMax(c.spellSlots, input.spellSlotMax);
     if (input.spellSlots !== undefined) applySpellSlotCurrent(c.spellSlots, input.spellSlots);
+    if (input.build !== undefined) c.build = sanitizeCharacterBuild(input.build, c.build);
 
     return c;
   }
@@ -440,6 +573,7 @@ export class Character {
       features: this.features.map((f) => ({ ...f })),
       spells: this.spells.map((s) => ({ ...s })),
       spellSlots: cloneSpellSlots(this.spellSlots),
+      build: sanitizeCharacterBuild(this.build, null),
     };
     for (const field of CHARACTER_FIELDS) out[field.key] = this[field.key];
     return out;

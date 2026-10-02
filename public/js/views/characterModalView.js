@@ -3,6 +3,8 @@ import { ApiClient } from '../api.js';
 import { clientState } from '../state.js';
 import { renderCharacterSelectList } from './characterSelectView.js';
 import { renderOwnCharacterView } from './characterSheetView.js';
+import { rulesRepository } from '../rulesRepository.js';
+import { CharacterBuilderPanel } from './characterBuilderPanel.js';
 
 const characterModal = document.getElementById('character-modal');
 const characterModalTitle = document.getElementById('character-modal-title');
@@ -29,6 +31,10 @@ const cfClassInput = document.getElementById('cf-class');
 const cfRaceInput = document.getElementById('cf-race');
 const cfClassOptions = document.getElementById('cf-class-options');
 const cfRaceOptions = document.getElementById('cf-race-options');
+const cfBackgroundInput = document.getElementById('cf-background');
+const cfBackgroundOptions = document.getElementById('cf-background-options');
+const cfRulesProvenance = document.getElementById('cf-rules-provenance');
+const cfRuleBuilder = document.getElementById('cf-rule-builder');
 
 const cfAttackSearch = document.getElementById('cf-attack-search');
 const cfWeaponOptions = document.getElementById('cf-weapon-options');
@@ -76,10 +82,24 @@ function debounceDatalist(input, datalist, searchFn, { onResults } = {}) {
   });
 }
 
-debounceDatalist(cfClassInput, cfClassOptions, async (q) => (await ApiClient.searchClasses(q)).classes || []);
-debounceDatalist(cfRaceInput, cfRaceOptions, async (q) => (await ApiClient.searchRaces(q)).races || []);
-
-debounceDatalist(cfAttackSearch, cfWeaponOptions, async (q) => (await ApiClient.searchWeapons(q)).weapons || []);
+let weaponResultsByName = new Map();
+debounceDatalist(cfAttackSearch, cfWeaponOptions, async (q) => (await ApiClient.searchWeapons(q)).weapons || [], {
+  onResults: (results) => {
+    weaponResultsByName = new Map(results.map((weapon) => [weapon.name.toLocaleLowerCase(), weapon]));
+  },
+});
+cfAttackSearch.addEventListener('change', () => {
+  const weapon = weaponResultsByName.get(cfAttackSearch.value.trim().toLocaleLowerCase());
+  if (!weapon) return;
+  if (weapon.damage) cfAttackDamage.value = weapon.damage;
+  if (weapon.damageType) cfAttackDamageType.value = weapon.damageType;
+  const metadata = [
+    weapon.weaponProperties?.length ? `Properties: ${weapon.weaponProperties.join(', ')}` : null,
+    weapon.mastery ? `Mastery: ${weapon.mastery}` : null,
+    weapon.sources?.length ? `Source: ${weapon.sources.join(', ')}` : null,
+  ].filter(Boolean);
+  if (metadata.length) cfAttackDesc.value = metadata.join(' · ').slice(0, 500);
+});
 
 let spellResultsByName = new Map();
 debounceDatalist(cfSpellSearch, cfSpellOptions, async (q) => (await ApiClient.searchSpells(q)).spells || [], {
@@ -102,6 +122,16 @@ function buildEntryRow(label, onRemove) {
   return row;
 }
 
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  })[character]);
+}
+
 export class CharacterModalView {
   constructor() {
     this.editingContext = null; // Which flow opened the modal, so Save knows what to do afterwards.
@@ -120,10 +150,123 @@ export class CharacterModalView {
     this.attacks = [];
     this.spells = [];
     this.features = [];
+    this.ruleCatalogs = null;
+    this.ruleCatalogsPromise = null;
+    this.originalBuildClasses = [];
+    this.buildDraft = null;
+    this.builderPanel = new CharacterBuilderPanel(cfRuleBuilder, {
+      repository: rulesRepository,
+      getBuild: () => this.buildDraft,
+      onBuildChange: (build) => {
+        this.buildDraft = build;
+        const primaryClass = build.classes?.[0];
+        if (primaryClass) {
+          this.ensureRuleCatalogs().then((catalogs) => {
+            const entry = catalogs.classes.find((item) => item.id === primaryClass.classId);
+            if (entry) cfClassInput.value = entry.name;
+          }).catch(() => {});
+        }
+      },
+      onUseItem: (category, item, record) => {
+        if (category === 'classes') cfClassInput.value = item.name;
+        if (category === 'species') cfRaceInput.value = item.name;
+        if (category === 'backgrounds') cfBackgroundInput.value = item.name;
+        if (category === 'spells' && !this.spells.some((spell) => spell.spellId === item.id)) {
+          this.spells.push({
+            name: item.name,
+            spellId: item.id,
+            source: (record.sources || []).map((source) => source.publication || source.title || source.id).filter(Boolean).join(', ') || null,
+            level: item.level || 0,
+            school: item.school || null,
+          });
+          this.renderSpellsList();
+        }
+      },
+      getCharacterLevel: () => Math.max(1, Number.parseInt(document.getElementById('cf-level').value, 10) || 1),
+      getLegacyClassName: () => cfClassInput.value,
+      getCharacterData: () => ({
+        attacks: this.attacks.map((entry) => ({ ...entry })),
+        spells: this.spells.map((entry) => ({ ...entry })),
+        features: this.features.map((entry) => ({ ...entry })),
+        spellSlots: Object.fromEntries(SPELL_LEVELS.map((level) => [level, {
+          max: Number(cfSpellSlotMaxInputs[level].value) || 0,
+        }])),
+      }),
+    });
 
     cfAddAttackBtn.addEventListener('click', () => this.addAttack());
     cfAddSpellBtn.addEventListener('click', () => this.addSpell());
     cfAddFeatureBtn.addEventListener('click', () => this.addFeature());
+    for (const [input, datalist] of [
+      [cfClassInput, cfClassOptions],
+      [cfRaceInput, cfRaceOptions],
+      [cfBackgroundInput, cfBackgroundOptions],
+    ]) {
+      input.addEventListener('input', () => this.filterRuleOptions(input, datalist));
+      input.addEventListener('change', () => this.updateRulesProvenance());
+    }
+  }
+
+  async ensureRuleCatalogs() {
+    if (this.ruleCatalogs) return this.ruleCatalogs;
+    if (!this.ruleCatalogsPromise) {
+      this.ruleCatalogsPromise = Promise.all([
+        rulesRepository.getManifest(),
+        rulesRepository.getCatalog('species'),
+        rulesRepository.getCatalog('backgrounds'),
+      ]).then(([manifest, species, backgrounds]) => {
+        this.ruleCatalogs = {
+          manifest,
+          classes: manifest.classes,
+          species: species.items,
+          backgrounds: backgrounds.items,
+        };
+        return this.ruleCatalogs;
+      }).catch((error) => {
+        this.ruleCatalogsPromise = null;
+        throw error;
+      });
+    }
+    return this.ruleCatalogsPromise;
+  }
+
+  filterRuleOptions(input, datalist) {
+    const key = input === cfClassInput ? 'classes' : input === cfRaceInput ? 'species' : 'backgrounds';
+    const items = this.ruleCatalogs?.[key] || [];
+    const query = input.value.trim().toLocaleLowerCase();
+    datalist.replaceChildren();
+    items
+      .filter((item) => !query || item.name.toLocaleLowerCase().includes(query))
+      .slice(0, 40)
+      .forEach((item) => {
+        const option = document.createElement('option');
+        option.value = item.name;
+        datalist.appendChild(option);
+      });
+  }
+
+  async updateRulesProvenance() {
+    const values = [
+      [cfClassInput, 'classes'],
+      [cfRaceInput, 'species'],
+      [cfBackgroundInput, 'backgrounds'],
+    ];
+    try {
+      const catalogs = await this.ensureRuleCatalogs();
+      const selected = values.map(([input, key]) => {
+        const item = catalogs[key].find((entry) => entry.name.toLocaleLowerCase() === input.value.trim().toLocaleLowerCase());
+        return item ? { item } : null;
+      }).filter(Boolean);
+      const records = await Promise.all(selected.map(({ item }) => rulesRepository.getRecord(item.path)));
+      const sources = records.flatMap((record) => record.sources || [])
+        .map((source) => source.publication || source.title || source.id)
+        .filter(Boolean);
+      cfRulesProvenance.textContent = sources.length
+        ? `Selected rules sources: ${[...new Set(sources)].join(' · ')}`
+        : 'Choose a database option to see its source. Manually entered values are not linked to a rules record.';
+    } catch {
+      cfRulesProvenance.textContent = 'Local rules data is unavailable. Database-backed choices cannot be verified.';
+    }
   }
 
   addAttack() {
@@ -131,6 +274,7 @@ export class CharacterModalView {
     if (!name) return;
     this.attacks.push({
       name,
+      equipmentId: weaponResultsByName.get(name.toLocaleLowerCase())?.id || null,
       toHit: cfAttackToHit.value.trim() || null,
       damage: cfAttackDamage.value.trim() || null,
       damageType: cfAttackDamageType.value.trim() || null,
@@ -144,11 +288,29 @@ export class CharacterModalView {
     this.renderAttacksList();
   }
 
-  addSpell() {
+  async addSpell() {
     const name = cfSpellSearch.value.trim();
     if (!name) return;
     const known = spellResultsByName.get(name);
-    this.spells.push({ name, level: known ? known.level : 0, school: known ? known.school : null });
+    let source = null;
+    if (known?.id) {
+      try {
+        const record = await rulesRepository.getCatalogRecord('spells', known.id);
+        source = (record?.sources || [])
+          .map((entry) => entry.publication || entry.title || entry.id)
+          .filter(Boolean)
+          .join(', ') || null;
+      } catch {
+        // Keep the selected stable ID and name even if detail provenance is unavailable.
+      }
+    }
+    this.spells.push({
+      name,
+      spellId: known?.id || null,
+      source,
+      level: known ? known.level : 0,
+      school: known ? known.school : null,
+    });
     cfSpellSearch.value = '';
     this.renderSpellsList();
   }
@@ -168,7 +330,7 @@ export class CharacterModalView {
       const parts = [attack.toHit ? `${attack.toHit} to hit` : null, attack.damage ? attack.damage : null].filter(
         Boolean
       );
-      const label = `<strong>${attack.name}</strong>${parts.length ? ' — ' + parts.join(', ') : ''}`;
+      const label = `<strong>${escapeHtml(attack.name)}</strong>${parts.length ? ' — ' + escapeHtml(parts.join(', ')) : ''}`;
       cfAttacksList.appendChild(
         buildEntryRow(label, () => {
           this.attacks.splice(index, 1);
@@ -182,7 +344,7 @@ export class CharacterModalView {
     cfSpellsList.innerHTML = '';
     this.spells.forEach((spell, index) => {
       const levelLabel = spell.level ? `Level ${spell.level}` : 'Cantrip';
-      const label = `<strong>${spell.name}</strong> — ${levelLabel}`;
+      const label = `<strong>${escapeHtml(spell.name)}</strong> — ${levelLabel}${spell.source ? ` · ${escapeHtml(spell.source)}` : ''}`;
       cfSpellsList.appendChild(
         buildEntryRow(label, () => {
           this.spells.splice(index, 1);
@@ -196,7 +358,7 @@ export class CharacterModalView {
     cfFeaturesList.innerHTML = '';
     this.features.forEach((feature, index) => {
       cfFeaturesList.appendChild(
-        buildEntryRow(`<strong>${feature.name}</strong>`, () => {
+        buildEntryRow(`<strong>${escapeHtml(feature.name)}</strong>`, () => {
           this.features.splice(index, 1);
           this.renderFeaturesList();
         })
@@ -221,6 +383,9 @@ export class CharacterModalView {
     document.getElementById('cf-name').value = c.name;
     document.getElementById('cf-class').value = c.class;
     document.getElementById('cf-race').value = c.race;
+    cfBackgroundInput.value = '';
+    this.originalBuildClasses = (c.build?.classes || []).map((entry) => ({ ...entry }));
+    this.buildDraft = structuredClone(c.build || Character.default().build);
     document.getElementById('cf-level').value = c.level;
     document.getElementById('cf-ac').value = c.ac;
     document.getElementById('cf-hp-current').value = c.hp.current;
@@ -254,6 +419,22 @@ export class CharacterModalView {
     cfFeatureDesc.value = '';
 
     characterModal.classList.remove('hidden');
+    this.ensureRuleCatalogs().then((catalogs) => {
+      const firstBuildClass = catalogs.classes.find((item) => item.id === c.build?.classes?.[0]?.classId);
+      const selectedSpecies = catalogs.species.find((item) => item.id === c.build?.speciesId);
+      if (!cfClassInput.value && firstBuildClass) cfClassInput.value = firstBuildClass.name;
+      if (!cfRaceInput.value && selectedSpecies) cfRaceInput.value = selectedSpecies.name;
+      cfBackgroundInput.value = catalogs.backgrounds.find((item) => item.id === c.build?.backgroundId)?.name || '';
+      for (const [input, datalist] of [
+        [cfClassInput, cfClassOptions],
+        [cfRaceInput, cfRaceOptions],
+        [cfBackgroundInput, cfBackgroundOptions],
+      ]) this.filterRuleOptions(input, datalist);
+      this.updateRulesProvenance();
+    }).catch(() => {
+      cfRulesProvenance.textContent = 'Local rules data is unavailable. Database-backed choices cannot be verified.';
+    });
+    this.builderPanel.syncFromBuild().catch(() => {});
 
     if (
       this.editingContext === 'edit-as-dm' ||
@@ -298,10 +479,44 @@ export class CharacterModalView {
   }
 
   async save() {
+    let catalogs = null;
+    try {
+      catalogs = await this.ensureRuleCatalogs();
+    } catch {
+      // Keep existing/manual character editing usable while local rules are unavailable.
+    }
+    const findId = (items, name) =>
+      items?.find((item) => item.name.toLocaleLowerCase() === String(name || '').trim().toLocaleLowerCase())?.id || null;
+    const selectedClassId = findId(catalogs?.classes, cfClassInput.value);
+    const existingClass = this.originalBuildClasses.find((entry) => entry.classId === selectedClassId);
     const payload = {
       name: document.getElementById('cf-name').value.trim() || 'Unnamed',
       class: document.getElementById('cf-class').value.trim(),
       race: document.getElementById('cf-race').value.trim(),
+      build: {
+        ...(this.buildDraft || {}),
+        ruleset: {
+          edition: catalogs?.manifest.edition || '2024',
+          databaseSchemaVersion: catalogs?.manifest.schemaVersion || 4,
+        },
+        speciesId: findId(catalogs?.species, cfRaceInput.value),
+        backgroundId: findId(catalogs?.backgrounds, cfBackgroundInput.value),
+        classes: (() => {
+          const classes = (this.buildDraft?.classes || []).map((entry) => ({ ...entry }));
+          if (!selectedClassId) return classes;
+          const existingIndex = classes.findIndex((entry) => entry.classId === selectedClassId);
+          if (existingIndex >= 0) {
+            classes[existingIndex].classLevel = document.getElementById('cf-level').value;
+            return classes;
+          }
+          const selectedEntry = {
+            classId: selectedClassId,
+            classLevel: document.getElementById('cf-level').value,
+            subclassId: existingClass?.subclassId || null,
+          };
+          return classes.length ? [selectedEntry, ...classes.slice(1)] : [selectedEntry];
+        })(),
+      },
       level: document.getElementById('cf-level').value,
       ac: document.getElementById('cf-ac').value,
       hp: {

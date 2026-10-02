@@ -291,7 +291,7 @@ export function buildSpellcastingContent(spellcasting) {
   return wrap.childElementCount ? wrap : null;
 }
 
-/** Character-style spellcasting: a flat list of { name, level, school } picked from dnd-data search. */
+/** Character-style spellcasting: a flat list of { name, level, school } linked to local spell records when selected. */
 export function buildFlatSpellList(spells) {
   if (!spells?.length) return null;
   const wrap = document.createElement('div');

@@ -127,3 +127,152 @@
   width: auto;
   padding: 10px 18px;
 }
+
+#cf-rule-builder {
+  margin: 18px 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(20, 14, 10, 0.35);
+}
+#cf-rule-builder h3,
+#cf-rule-builder h4,
+#cf-rule-builder h5 {
+  margin: 8px 0;
+  color: var(--ember-bright);
+}
+#cf-rule-builder h3 { font-size: 1rem; }
+#cf-rule-builder h4 { font-size: 0.88rem; }
+#cf-rule-builder h5 { font-size: 0.78rem; }
+.cf-builder-controls,
+.cf-builder-pager {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 8px 0;
+}
+.cf-builder-controls select,
+.cf-builder-controls input,
+.cf-builder-choice > input,
+.cf-builder-choice > input[type='search'] {
+  min-width: 0;
+  padding: 8px;
+  color: var(--parchment);
+  background: var(--wood);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font: inherit;
+}
+.cf-builder-controls select { flex: 0 0 145px; }
+.cf-builder-controls input { flex: 1 1 180px; }
+.cf-builder-export { justify-content: flex-end; }
+.cf-builder-results {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  max-height: 300px;
+  overflow: auto;
+}
+.cf-builder-result { min-width: 0; }
+.cf-builder-item {
+  width: 100%;
+  padding: 8px;
+  text-align: left;
+  color: var(--parchment);
+  background: var(--wood-light);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  cursor: pointer;
+}
+.cf-builder-item:hover,
+.cf-builder-item:focus-visible { border-color: var(--ember-bright); }
+.cf-builder-count,
+.cf-builder-meta { color: var(--parchment-dim); font-size: 0.76rem; }
+.cf-builder-pager { justify-content: center; }
+.cf-builder-pager .secondary-btn { width: auto; padding: 6px 10px; }
+.cf-builder-detail,
+.cf-builder-feature,
+.cf-builder-choice {
+  margin: 10px 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.cf-builder-detail h4 { margin-top: 0 !important; }
+.cf-builder-description {
+  max-height: 190px;
+  overflow: auto;
+  white-space: pre-wrap;
+  color: var(--parchment-dim);
+  font-size: 0.8rem;
+}
+.cf-builder-choice { min-width: 0; }
+.cf-builder-choice legend { padding: 0 5px; color: var(--parchment); }
+.cf-builder-choice > input[type='search'] { width: 100%; box-sizing: border-box; }
+.cf-builder-choice-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 8px;
+  max-height: 220px;
+  margin-top: 8px;
+  overflow: auto;
+}
+.cf-builder-option { display: flex; align-items: flex-start; gap: 6px; color: var(--parchment-dim); font-size: 0.76rem; }
+.cf-builder-option input { margin: 2px 0 0; }
+.cf-builder-warning { color: #ffcb8a; font-size: 0.8rem; }
+.cf-builder-pager button:disabled { opacity: 0.45; cursor: default; }
+
+@media (max-width: 560px) {
+  .cf-builder-results,
+  .cf-builder-choice-options { grid-template-columns: 1fr; }
+}
+
+@media print {
+  body * { visibility: hidden !important; }
+  #character-modal:not(.hidden),
+  #character-modal:not(.hidden) * { visibility: visible !important; }
+  #character-modal:not(.hidden) {
+    position: static;
+    display: block;
+    padding: 0;
+    overflow: visible;
+    background: white;
+  }
+  #character-modal:not(.hidden) .modal-card {
+    width: auto;
+    max-width: none;
+    max-height: none;
+    overflow: visible;
+    padding: 12mm;
+    color: #111;
+    background: white;
+    border: 0;
+    box-shadow: none;
+  }
+  #character-modal:not(.hidden) .modal-actions,
+  #character-modal:not(.hidden) button,
+  #character-modal:not(.hidden) .cf-builder-export,
+  #character-modal:not(.hidden) .cf-builder-browse-heading,
+  #character-modal:not(.hidden) .cf-builder-browse-controls,
+  #character-modal:not(.hidden) .cf-builder-browse-count,
+  #character-modal:not(.hidden) .cf-builder-browse-results,
+  #character-modal:not(.hidden) .cf-builder-browse-pager,
+  #character-modal:not(.hidden) .cf-builder-detail,
+  #character-modal:not(.hidden) #cf-attack-search,
+  #character-modal:not(.hidden) #cf-spell-search { display: none !important; }
+  #character-modal:not(.hidden) input,
+  #character-modal:not(.hidden) textarea,
+  #character-modal:not(.hidden) select {
+    display: inline-block;
+    padding: 0;
+    color: #111;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+  }
+  #character-modal:not(.hidden) .cf-builder-results { max-height: none; overflow: visible; }
+  #character-modal:not(.hidden) .cf-builder-detail,
+  #character-modal:not(.hidden) .cf-builder-feature,
+  #character-modal:not(.hidden) .cf-builder-choice { break-inside: avoid; }
+}

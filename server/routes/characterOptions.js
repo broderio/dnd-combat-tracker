@@ -3,10 +3,8 @@ import { Router } from 'express';
 import { ROUTES } from '../../shared/protocol.js';
 import { characterOptionsLibrary } from '../characterOptions.js';
 
-// Read-only lookups backing the character modal's searchable dropdowns —
-// class/race name autocomplete plus weapon/spell reference search. See
-// server/characterOptions.js for why these are name-only rather than fully
-// structured like server/monsterLibrary.js.
+// Read-only lookups backing the character modal's searchable local-rule
+// dropdowns for classes, species, weapons, and spells.
 export class CharacterOptionsController {
   constructor() {
     this.router = Router();

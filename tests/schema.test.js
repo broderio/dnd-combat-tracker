@@ -60,6 +60,66 @@ test('Character.default produces a character with default ability scores and emp
   assert.deepEqual(c.abilityScores, { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 });
   assert.deepEqual(c.attacks, []);
   assert.deepEqual(c.statusEffects, []);
+  assert.equal(c.build.schemaVersion, 1);
+  assert.equal(c.build.ruleset.edition, '2024');
+});
+
+test('Character.fromInput sanitizes versioned builder choices and caps total character level', () => {
+  const c = Character.fromInput({
+    build: {
+      speciesId: 'human',
+      backgroundId: '../invalid',
+      abilityScoreMethod: 'point-buy',
+      classes: [
+        { classId: 'fighter', classLevel: 12, subclassId: 'champion' },
+        { classId: 'wizard', classLevel: 12 },
+        { classId: '../bad', classLevel: 1 },
+      ],
+      selections: [{ choiceId: 'fighter.skill', selectedOptionIds: ['athletics', 'athletics', '../bad'] }],
+      spells: [
+        { spellId: 'fireball', status: 'prepared', sourceClassId: 'wizard' },
+        { spellId: '../invalid', status: 'unknown', sourceClassId: 'wizard' },
+      ],
+      inventory: [{ equipmentId: 'longsword', quantity: 4, equipped: true }],
+      proficiencies: { skills: ['athletics', 'athletics', '../bad'] },
+      roleplay: { ideals: 'Protect the town', unexpectedField: 'drop me' },
+      overrides: { armorClass: 99, hidden: 10 },
+    },
+  }, null);
+
+  assert.equal(c.build.speciesId, 'human');
+  assert.equal(c.build.backgroundId, null);
+  assert.equal(c.build.abilityScoreMethod, 'point-buy');
+  assert.deepEqual(c.build.classes, [
+    { classId: 'fighter', classLevel: 12, subclassId: 'champion' },
+    { classId: 'wizard', classLevel: 8, subclassId: null },
+  ]);
+  assert.deepEqual(c.build.selections[0].selectedOptionIds, ['athletics']);
+  assert.deepEqual(c.build.spells, [{ spellId: 'fireball', status: 'prepared', sourceClassId: 'wizard' }]);
+  assert.deepEqual(c.build.proficiencies.skills, ['athletics']);
+  assert.equal(c.build.inventory[0].quantity, 4);
+  assert.equal(c.build.roleplay.ideals, 'Protect the town');
+  assert.equal(c.build.roleplay.unexpectedField, undefined);
+  assert.deepEqual(c.build.overrides, { armorClass: 40 });
+});
+
+test('Character legacy saves migrate to builder defaults and partial builder edits preserve other selections', () => {
+  const legacy = Character.fromInput({ name: 'Mira', class: 'Fighter', race: 'Human' }, null).toJSON();
+  delete legacy.build;
+  const migrated = Character.clone(legacy);
+  assert.equal(migrated.build.schemaVersion, 1);
+  assert.equal(migrated.build.speciesId, null);
+
+  migrated.build = Character.fromInput({ build: {
+    speciesId: 'human',
+    classes: [{ classId: 'fighter', classLevel: 3, subclassId: 'champion' }],
+    proficiencies: { skills: ['athletics'] },
+  } }, migrated).build;
+  const updated = Character.fromInput({ build: { backgroundId: 'acolyte' } }, migrated);
+  assert.equal(updated.build.speciesId, 'human');
+  assert.equal(updated.build.backgroundId, 'acolyte');
+  assert.equal(updated.build.classes[0].subclassId, 'champion');
+  assert.deepEqual(updated.build.proficiencies.skills, ['athletics']);
 });
 
 test('Character.fromInput sanitizes text fields and falls back to "Unnamed" when name is blank', () => {
@@ -99,6 +159,25 @@ test('Character.fromInput drops attacks/features/spells with no name', () => {
   assert.equal(c.attacks.length, 1);
   assert.equal(c.attacks[0].name, 'Longsword');
   assert.equal(c.spells[0].level, 3);
+});
+
+test('Character preserves stable local weapon and spell references while keeping manual entries valid', () => {
+  const c = Character.fromInput({
+    attacks: [
+      { name: 'Mace', equipmentId: 'mace', damage: '1d6 Bludgeoning' },
+      { name: 'Unlinked attack', equipmentId: '../invalid' },
+    ],
+    spells: [
+      { name: 'Fireball', spellId: 'fireball', level: 3, school: 'Evocation' },
+      { name: 'Manual spell', level: 1 },
+    ],
+  }, null);
+
+  assert.equal(c.attacks[0].equipmentId, 'mace');
+  assert.equal(c.attacks[1].equipmentId, null);
+  assert.equal(c.spells[0].spellId, 'fireball');
+  assert.equal(c.spells[1].spellId, null);
+  assert.equal(Character.clone(c.toJSON()).spells[0].spellId, 'fireball');
 });
 
 test('Character.condition() reflects current hp state', () => {

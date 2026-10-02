@@ -107,13 +107,18 @@
           </label>
           <label
             >Class
-            <input id="cf-class" type="text" maxlength="40" list="cf-class-options" placeholder="e.g. Ranger" />
+            <input id="cf-class" type="text" maxlength="40" list="cf-class-options" placeholder="Choose or enter a class" />
             <datalist id="cf-class-options"></datalist>
           </label>
           <label
-            >Race
-            <input id="cf-race" type="text" maxlength="40" list="cf-race-options" placeholder="e.g. Half-Elf" />
+            >Species
+            <input id="cf-race" type="text" maxlength="40" list="cf-race-options" placeholder="Choose or enter a species" />
             <datalist id="cf-race-options"></datalist>
+          </label>
+          <label
+            >Background
+            <input id="cf-background" type="text" maxlength="60" list="cf-background-options" placeholder="Choose or enter a background" />
+            <datalist id="cf-background-options"></datalist>
           </label>
           <label
             >Level
@@ -132,6 +137,8 @@
             <input id="cf-hp-max" type="number" min="0" max="9999" value="10" />
           </label>
         </div>
+        <p id="cf-rules-provenance" class="hint" aria-live="polite"></p>
+        <section id="cf-rule-builder" aria-label="Rules-backed character builder"></section>
 
         <h3>Ability Scores</h3>
         <div class="ability-grid">
@@ -160,7 +167,7 @@
         <div class="char-form-grid">
           <label
             >Weapon lookup
-            <input id="cf-attack-search" type="text" list="cf-weapon-options" placeholder="Search dnd-data weapons…" />
+            <input id="cf-attack-search" type="text" list="cf-weapon-options" placeholder="Search local weapons…" />
             <datalist id="cf-weapon-options"></datalist>
           </label>
           <label>To Hit <input id="cf-attack-tohit" type="text" maxlength="20" placeholder="+5" /></label>
@@ -178,7 +185,7 @@
         <div class="char-form-grid">
           <label
             >Spell lookup
-            <input id="cf-spell-search" type="text" list="cf-spell-options" placeholder="Search dnd-data spells…" />
+            <input id="cf-spell-search" type="text" list="cf-spell-options" placeholder="Search local spells…" />
             <datalist id="cf-spell-options"></datalist>
           </label>
         </div>

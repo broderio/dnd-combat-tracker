@@ -27,8 +27,11 @@ test('searchWeapons returns objects with name and description for a matching que
   assert.ok(results.length > 0);
   for (const w of results) {
     assert.ok(w.name.toLowerCase().includes('sword'));
+    assert.ok(w.id);
     assert.equal(typeof w.description, 'string');
+    assert.ok(Array.isArray(w.sources));
   }
+  assert.ok(results.some((weapon) => weapon.damage && weapon.damageType));
 });
 
 test('searchSpells returns objects with name/level/school for a matching query', () => {
@@ -36,6 +39,7 @@ test('searchSpells returns objects with name/level/school for a matching query',
   assert.ok(results.length > 0);
   for (const s of results) {
     assert.ok(s.name.toLowerCase().includes('fire'));
+    assert.ok(s.id);
     assert.equal(typeof s.level, 'number');
   }
 });
