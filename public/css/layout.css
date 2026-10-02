@@ -1,0 +1,83 @@
+#game-screen {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ---------- Game screen topbar ---------- */
+#topbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 18px;
+  background: var(--wood-light);
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  font-size: 1.2rem;
+  font-weight: 1200;
+  color: var(--ember-bright);
+  letter-spacing: 0.03em;
+}
+
+.badge {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--wood);
+  border: 1px solid var(--line);
+  font-size: 0.8rem;
+  color: var(--parchment-dim);
+}
+
+/* turn-list should be centered within the topbar */
+.turn-list {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  gap: 6px;
+  margin: 0 auto;
+  width: fit-content;
+  padding: 0 10px;
+}
+
+.turn-list-badge {
+  flex: 0 0 auto;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--wood);
+  border: 1px solid var(--line);
+  font-size: 0.8rem;
+  color: var(--parchment-dim);
+}
+
+.turn-list-badge.current {
+  background: var(--ember);
+  color: #fff;
+}
+
+#presence-log {
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: var(--parchment-dim);
+  opacity: 0.8;
+  max-width: 45%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#turn-banner {
+  color: #ffe08a;
+  border-color: #ffe08a;
+}
+
+/* ---------- Overall game-screen layout ---------- */
+#layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}

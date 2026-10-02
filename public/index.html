@@ -4,7 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Combat Tracker</title>
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/layout.css" />
+    <link rel="stylesheet" href="css/join-screen.css" />
+    <link rel="stylesheet" href="css/character-select.css" />
+    <link rel="stylesheet" href="css/character-modal.css" />
+    <link rel="stylesheet" href="css/sidebar-character.css" />
+    <link rel="stylesheet" href="css/dm-panel.css" />
+    <link rel="stylesheet" href="css/quick-edit.css" />
+    <link rel="stylesheet" href="css/board.css" />
+    <link rel="stylesheet" href="css/monster-sheet.css" />
+    <link rel="stylesheet" href="css/dice-roller.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:FILL@1" />
   </head>
@@ -52,9 +62,21 @@
 
         <div id="dm-form" class="join-form hidden">
           <label
-            >DM name (optional)
-            <input id="dm-name" type="text" placeholder="e.g. Dungeon Master" maxlength="30" />
+            >DM username
+            <input id="dm-name" type="text" placeholder="e.g. dm" maxlength="30" autocomplete="username" />
           </label>
+          <label
+            >PIN
+            <input
+              id="dm-pin"
+              type="password"
+              inputmode="numeric"
+              placeholder="DM PIN"
+              maxlength="12"
+              autocomplete="current-password"
+            />
+          </label>
+          <p id="dm-login-error" class="form-error hidden"></p>
           <button id="join-dm-btn" class="primary-btn">Enter as DM</button>
         </div>
       </div>

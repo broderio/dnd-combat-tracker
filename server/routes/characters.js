@@ -1,6 +1,6 @@
 import { Router } from 'express';
 
-import { EVENTS } from '../../shared/protocol.js';
+import { ROUTES } from '../../shared/protocol.js';
 
 export class CharactersController {
   constructor(io, database, roster, gameStateStore) {
@@ -12,11 +12,11 @@ export class CharactersController {
     this.router = Router();
     // TODO: If a player updates their character's color, we should update the
     // token color on the board in real-time.
-    this.router.get('/characters/:username', (req, res) => this.getCharacters(req, res));
-    this.router.post('/characters/:username', (req, res) => this.createCharacter(req, res));
-    this.router.put('/characters/:username/:id', (req, res) => this.updateCharacter(req, res));
-    this.router.delete('/characters/:username/:id', (req, res) => this.deleteCharacter(req, res));
-    this.router.get('/all-characters', (req, res) => this.getAllCharacters(req, res));
+    this.router.get(ROUTES.characters, (req, res) => this.getCharacters(req, res));
+    this.router.post(ROUTES.characters, (req, res) => this.createCharacter(req, res));
+    this.router.put(ROUTES.character, (req, res) => this.updateCharacter(req, res));
+    this.router.delete(ROUTES.character, (req, res) => this.deleteCharacter(req, res));
+    this.router.get(ROUTES.allCharacters, (req, res) => this.getAllCharacters(req, res));
   }
 
   getCharacters(req, res) {
@@ -36,7 +36,7 @@ export class CharactersController {
     user.characters.push(character);
     this.db.saveDB(db);
     this.roster.notifyCharacterUpdated(this.io, user.username, character.id, character);
-    this.io.emit(EVENTS.STATE, this.gameState.getState());
+    this.gameState.broadcast(this.io);
     res.json({ ok: true, characters: user.characters, character });
   }
 
@@ -56,7 +56,7 @@ export class CharactersController {
     // A DM's inline HP/status quick-edit (or the player's own sheet edit)
     // may have changed what's safe to show on the board — re-broadcast the
     // full board state so every client's combatantStatuses stays current.
-    this.io.emit(EVENTS.STATE, this.gameState.getState());
+    this.gameState.broadcast(this.io);
     res.json({ ok: true, characters: user.characters, character: updated });
   }
 

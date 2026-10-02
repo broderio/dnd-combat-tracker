@@ -1,4 +1,4 @@
-import { OVERLAY_TYPES } from '/shared/schema.js';
+import { OVERLAY_TYPES, getOverlayMeta } from '/shared/schema.js';
 import { EVENTS } from '/shared/protocol.js';
 
 import { socketClient } from '../socketClient.js';
@@ -59,7 +59,7 @@ export function renderOverlayList() {
   if (clientState.session.mode !== 'dm') return;
   overlayList.innerHTML = '';
   Object.values(clientState.board.overlays).forEach((overlay) => {
-    const meta = OVERLAY_TYPES[overlay.type] || OVERLAY_TYPES.generic;
+    const meta = getOverlayMeta(overlay.type);
     const li = document.createElement('li');
 
     const swatch = document.createElement('span');

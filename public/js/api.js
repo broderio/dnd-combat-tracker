@@ -1,3 +1,5 @@
+import { API_BASE, ROUTES, UPLOAD_BACKGROUND_ROUTE, buildRoute } from '/shared/protocol.js';
+
 export class ApiClient {
   static async #sendJson(url, method, body) {
     const res = await fetch(url, {
@@ -9,24 +11,28 @@ export class ApiClient {
   }
 
   static login(username, pin) {
-    return ApiClient.#sendJson('/api/login', 'POST', { username, pin });
+    return ApiClient.#sendJson(`${API_BASE}${ROUTES.login}`, 'POST', { username, pin });
+  }
+
+  static dmLogin(username, pin) {
+    return ApiClient.#sendJson(`${API_BASE}${ROUTES.dmLogin}`, 'POST', { username, pin });
   }
 
   static createCharacter(username, payload) {
-    return ApiClient.#sendJson(`/api/characters/${encodeURIComponent(username)}`, 'POST', payload);
+    return ApiClient.#sendJson(`${API_BASE}${buildRoute(ROUTES.characters, { username })}`, 'POST', payload);
   }
 
   static updateCharacter(username, characterId, payload) {
-    return ApiClient.#sendJson(`/api/characters/${encodeURIComponent(username)}/${characterId}`, 'PUT', payload);
+    return ApiClient.#sendJson(`${API_BASE}${buildRoute(ROUTES.character, { username, id: characterId })}`, 'PUT', payload);
   }
 
   static deleteCharacter(username, characterId) {
-    return ApiClient.#sendJson(`/api/characters/${encodeURIComponent(username)}/${characterId}`, 'DELETE', {});
+    return ApiClient.#sendJson(`${API_BASE}${buildRoute(ROUTES.character, { username, id: characterId })}`, 'DELETE', {});
   }
 
   /** Full roster across all users (DM-only feature) */
   static async getAllCharacters() {
-    const res = await fetch('/api/all-characters');
+    const res = await fetch(`${API_BASE}${ROUTES.allCharacters}`);
     return res.json();
   }
 
@@ -36,55 +42,55 @@ export class ApiClient {
     if (crMin !== undefined && crMin !== '') params.set('crMin', crMin);
     if (crMax !== undefined && crMax !== '') params.set('crMax', crMax);
     if (type) params.set('type', type);
-    const res = await fetch(`/api/monsters?${params.toString()}`);
+    const res = await fetch(`${API_BASE}${ROUTES.monsters}?${params.toString()}`);
     return res.json();
   }
 
   static async searchClasses(name) {
-    const res = await fetch(`/api/character-options/classes?name=${encodeURIComponent(name || '')}`);
+    const res = await fetch(`${API_BASE}${ROUTES.characterOptionsClasses}?name=${encodeURIComponent(name || '')}`);
     return res.json();
   }
 
   static async searchRaces(name) {
-    const res = await fetch(`/api/character-options/races?name=${encodeURIComponent(name || '')}`);
+    const res = await fetch(`${API_BASE}${ROUTES.characterOptionsRaces}?name=${encodeURIComponent(name || '')}`);
     return res.json();
   }
 
   static async searchWeapons(name) {
-    const res = await fetch(`/api/character-options/weapons?name=${encodeURIComponent(name || '')}`);
+    const res = await fetch(`${API_BASE}${ROUTES.characterOptionsWeapons}?name=${encodeURIComponent(name || '')}`);
     return res.json();
   }
 
   static async searchSpells(name) {
-    const res = await fetch(`/api/character-options/spells?name=${encodeURIComponent(name || '')}`);
+    const res = await fetch(`${API_BASE}${ROUTES.characterOptionsSpells}?name=${encodeURIComponent(name || '')}`);
     return res.json();
   }
 
   static async getEncounters() {
-    const res = await fetch('/api/encounters');
+    const res = await fetch(`${API_BASE}${ROUTES.encounters}`);
     return res.json();
   }
 
   static createEncounter(payload) {
-    return ApiClient.#sendJson('/api/encounters', 'POST', payload);
+    return ApiClient.#sendJson(`${API_BASE}${ROUTES.encounters}`, 'POST', payload);
   }
 
   static updateEncounter(id, payload) {
-    return ApiClient.#sendJson(`/api/encounters/${id}`, 'PUT', payload);
+    return ApiClient.#sendJson(`${API_BASE}${buildRoute(ROUTES.encounter, { id })}`, 'PUT', payload);
   }
 
   static deleteEncounter(id) {
-    return ApiClient.#sendJson(`/api/encounters/${id}`, 'DELETE', {});
+    return ApiClient.#sendJson(`${API_BASE}${buildRoute(ROUTES.encounter, { id })}`, 'DELETE', {});
   }
 
   static loadEncounter(id) {
-    return ApiClient.#sendJson(`/api/encounters/${id}/load`, 'POST', {});
+    return ApiClient.#sendJson(`${API_BASE}${buildRoute(ROUTES.encounterLoad, { id })}`, 'POST', {});
   }
 
   static async uploadBackground(file) {
     const formData = new FormData();
     formData.append('background', file);
-    const res = await fetch('/upload-background', { method: 'POST', body: formData });
+    const res = await fetch(UPLOAD_BACKGROUND_ROUTE, { method: 'POST', body: formData });
     return res.json();
   }
 }

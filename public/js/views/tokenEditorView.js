@@ -1,13 +1,3 @@
-// public/js/views/tokenEditorView.js
-//
-// Builds each row of the DM's token list (dmPanelView.js's #token-list).
-// Tokens are a read-only projection now (see ARCHITECTURE.md's "Single
-// source of truth" section) — there is no more per-token HP/status editor
-// here. If a token is linked to a character (`combatantId`), that's shown as
-// a label only; editing HP/status happens in the "All Characters" sidebar
-// (see characterSheetView.js's quick-edit controls) or, for monsters, the
-// "Monsters" sidebar (see monsterSheetView.js) — not here.
-
 import { EVENTS } from '/shared/protocol.js';
 
 import { socketClient } from '../socketClient.js';

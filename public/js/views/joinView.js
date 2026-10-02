@@ -52,8 +52,30 @@ document.getElementById('join-player-btn').addEventListener('click', async () =>
   }
 });
 
-document.getElementById('join-dm-btn').addEventListener('click', () => {
-  const name = document.getElementById('dm-name').value.trim() || 'DM';
-  clientState.setSession('dm', name);
-  socketClient.joinTable({ mode: 'dm', name });
+document.getElementById('join-dm-btn').addEventListener('click', async () => {
+  const name = document.getElementById('dm-name').value.trim();
+  const pin = document.getElementById('dm-pin').value.trim();
+  const dmLoginError = document.getElementById('dm-login-error');
+  dmLoginError.classList.add('hidden');
+
+  if (!name || !pin) {
+    dmLoginError.textContent = 'Enter the DM username and PIN.';
+    dmLoginError.classList.remove('hidden');
+    return;
+  }
+
+  try {
+    const data = await ApiClient.dmLogin(name, pin);
+    if (!data.ok) {
+      dmLoginError.textContent = data.error || 'Login failed.';
+      dmLoginError.classList.remove('hidden');
+      return;
+    }
+
+    clientState.setSession('dm', data.username);
+    socketClient.joinTable({ mode: 'dm', name: data.username, pin });
+  } catch (err) {
+    dmLoginError.textContent = 'Could not reach the server. Is it running?';
+    dmLoginError.classList.remove('hidden');
+  }
 });

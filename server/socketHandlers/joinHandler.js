@@ -1,4 +1,5 @@
 import { EVENTS } from '../../shared/protocol.js';
+import { PermissionPolicy } from '../policy.js';
 
 export class JoinHandler {
   constructor(io, socket, session, database, gameStateStore, roster) {
@@ -15,8 +16,25 @@ export class JoinHandler {
     this.socket.on('disconnect', () => this.#handleDisconnect());
   }
 
-  #handleJoin({ mode, name, characterId }) {
-    this.session.mode = mode === 'dm' ? 'dm' : 'player';
+  #handleJoin({ mode, name, characterId, pin }) {
+    const requestedMode = mode === 'dm' ? 'dm' : 'player';
+
+    // Defense in depth: the client only reaches this point after a
+    // successful POST /api/dm-login, but a socket message is trivial to
+    // forge from devtools, so the DM pin is re-checked here too — anyone
+    // without it is joined as a player instead, regardless of what mode
+    // they asked for.
+    if (requestedMode === 'dm') {
+      const db = this.db.loadDB();
+      const dmRecord = db.dm;
+      const isValidDm = PermissionPolicy.verifyDmCredentials(dmRecord, name, pin);
+      if (!isValidDm) {
+        this.socket.emit(EVENTS.JOIN_ERROR, { error: 'Invalid DM credentials.' });
+        return;
+      }
+    }
+
+    this.session.mode = requestedMode;
     this.session.name = (name || '').trim() || 'Player';
     this.session.characterId = characterId || null;
     this.socket.data.session = this.session;

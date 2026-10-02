@@ -1,0 +1,60 @@
+/* ---------- Character select screen ---------- */
+.character-select-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.character-select-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--wood);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.char-card-info .char-card-name {
+  font-weight: 700;
+  color: var(--ember-bright);
+}
+.char-card-info .char-card-meta {
+  font-size: 0.8rem;
+  color: var(--parchment-dim);
+  margin-top: 2px;
+}
+
+.char-card-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.char-card-actions button {
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.play-btn {
+  background: var(--ember);
+  border: none;
+  color: #fff;
+}
+.play-btn:hover {
+  background: var(--ember-bright);
+}
+.edit-btn {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--parchment-dim);
+}
+.edit-btn:hover {
+  color: var(--ember-bright);
+  border-color: var(--ember);
+}

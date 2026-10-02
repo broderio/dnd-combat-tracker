@@ -2,7 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import path from 'path';
 
-import { EVENTS } from '../../shared/protocol.js';
+import { UPLOAD_BACKGROUND_ROUTE } from '../../shared/protocol.js';
 
 export class BackgroundController {
   constructor(io, gameStateStore, uploadDir) {
@@ -19,13 +19,13 @@ export class BackgroundController {
     const upload = multer({ storage });
 
     this.router = Router();
-    this.router.post('/upload-background', upload.single('background'), (req, res) => this.uploadBackground(req, res));
+    this.router.post(UPLOAD_BACKGROUND_ROUTE, upload.single('background'), (req, res) => this.uploadBackground(req, res));
   }
 
   uploadBackground(req, res) {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     this.gameState.setBackground('/uploads/' + req.file.filename);
-    this.io.emit(EVENTS.STATE, this.gameState.getState()); // broadcast full
+    this.gameState.broadcast(this.io); // broadcast full
     // state so everyone gets the new background
     res.json({ ok: true, background: this.gameState.getState().background });
   }

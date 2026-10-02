@@ -1,15 +1,9 @@
 // server/socketHandlers/tokenHandlers.js
 import { EVENTS } from '../../shared/protocol.js';
 import { PermissionPolicy } from '../policy.js';
+import { BaseSocketHandler } from './baseSocketHandler.js';
 
-export class TokenHandlers {
-  constructor(io, socket, session, gameStateStore) {
-    this.io = io;
-    this.socket = socket;
-    this.session = session;
-    this.gameState = gameStateStore;
-  }
-
+export class TokenHandlers extends BaseSocketHandler {
   register() {
     this.socket.on(EVENTS.ADD_TOKEN, (token) => this.#handleAddToken(token));
     this.socket.on(EVENTS.REMOVE_TOKEN, (id) => this.#handleRemoveToken(id));
@@ -19,15 +13,15 @@ export class TokenHandlers {
   }
 
   #handleAddToken(token) {
-    if (!PermissionPolicy.canManageBoard(this.session)) return;
+    if (!this.guard()) return;
     this.gameState.addToken(token);
-    this.io.emit(EVENTS.STATE, this.gameState.getState());
+    this.broadcastState();
   }
 
   #handleRemoveToken(id) {
-    if (!PermissionPolicy.canManageBoard(this.session)) return;
+    if (!this.guard()) return;
     this.gameState.removeToken(id);
-    this.io.emit(EVENTS.STATE, this.gameState.getState());
+    this.broadcastState();
     this.gameState.pushMonsterInstancesToDMs(this.io); // in case removing the token deleted a monster instance
   }
 
@@ -41,7 +35,7 @@ export class TokenHandlers {
   }
 
   #handleAddMonsterToken({ templateId, color, col, row }) {
-    if (!PermissionPolicy.canManageBoard(this.session)) return;
+    if (!this.guard()) return;
     const instance = this.gameState.addMonsterInstance(templateId);
     if (!instance) return; // unknown templateId
     this.gameState.addToken({
@@ -53,13 +47,13 @@ export class TokenHandlers {
       combatantId: instance.id,
       combatantType: 'monster',
     });
-    this.io.emit(EVENTS.STATE, this.gameState.getState());
+    this.broadcastState();
     this.gameState.pushMonsterInstancesToDMs(this.io);
   }
 
   // DM-only quick-edit of a placed monster instance's hp/statusEffects/spell slots.
   #handleUpdateMonsterInstance({ id, hp, statusEffects, customStatusEffects, spellSlots, spellSlotMax }) {
-    if (!PermissionPolicy.canManageBoard(this.session)) return;
+    if (!this.guard()) return;
     const updated = this.gameState.updateMonsterInstance(id, {
       hp,
       statusEffects,
@@ -68,7 +62,7 @@ export class TokenHandlers {
       spellSlotMax,
     });
     if (!updated) return;
-    this.io.emit(EVENTS.STATE, this.gameState.getState());
+    this.broadcastState();
     this.gameState.pushMonsterInstancesToDMs(this.io);
   }
 }

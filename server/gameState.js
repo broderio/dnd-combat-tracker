@@ -2,6 +2,7 @@ import { computeCondition, Grid, MonsterInstance, Overlay, Token, TurnOrder, Val
 import { EVENTS } from '../shared/protocol.js';
 import { db } from './db.js';
 import { monsterLibrary } from './monsterLibrary.js';
+import { PermissionPolicy } from './policy.js';
 
 export class GameStateStore {
   constructor(database) {
@@ -54,8 +55,7 @@ export class GameStateStore {
   }
 
   restoreSnapshot(snapshot) {
-    this.#loadFromSnapshot(snapshot);
-    this.#persist();
+    this.#loadFromSnapshot(snapshot);    this.#persist();
   }
 
   getState() {
@@ -69,6 +69,11 @@ export class GameStateStore {
     };
   }
 
+  /** Broadcasts the current board state to every connected socket. */
+  broadcast(io) {
+    io.emit(EVENTS.STATE, this.getState());
+  }
+
   /** Full monster instance stats (real hp/statusEffects) — DM-only, see JoinHandler/TokenHandlers. */
   getMonsterInstancesJSON() {
     return Object.fromEntries(Object.entries(this.monsterInstances).map(([id, m]) => [id, m.toJSON()]));
@@ -77,11 +82,7 @@ export class GameStateStore {
   /** Pushes the full monster instance list to every currently-connected DM socket. */
   pushMonsterInstancesToDMs(io) {
     const list = this.getMonsterInstancesJSON();
-    for (const [, s] of io.sockets.sockets) {
-      if (s.data.session && s.data.session.mode === 'dm') {
-        s.emit(EVENTS.ALL_MONSTER_INSTANCES, list);
-      }
-    }
+    PermissionPolicy.forEachDmSocket(io, (socket) => socket.emit(EVENTS.ALL_MONSTER_INSTANCES, list));
   }
 
   #computeCombatantStatuses() {
